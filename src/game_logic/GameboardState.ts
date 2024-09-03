@@ -1,4 +1,4 @@
-import { CardCombination } from "./CardCombinations";
+import { Bomb, CardCombination, createCombination, UnexpectedCombinationType } from "./CardCombinations";
 import { CardInfo, specialCards } from "./CardInfo";
 import { Deck } from "./Deck";
 
@@ -26,6 +26,14 @@ class TableState {
     currentCombination: CardCombination | null = null;
     currentCardsOwnerIndex: number = -1;
     requestedCardName: string = '';
+
+    endTableRound(requestedCardName?: string) {
+        this.previousCards = [];
+        this.currentCards = [];
+        this.currentCombination = null;
+        this.currentCardsOwnerIndex = -1;
+        this.requestedCardName = requestedCardName ?? '';
+    }
 }
 
 export class GameboardState {
@@ -98,6 +106,192 @@ export class GameboardState {
     }
 
     /**
+     * Returns `true` if the target combination can be played on top of the current
+     * table combination.
+     * @param selectedCombination The target combination to be examed.
+     */
+    private isPlayable(selectedCombination: CardCombination) {
+        if (this.tableState.currentCombination !== null) {
+            if (selectedCombination instanceof Bomb) {
+                if (this.tableState.currentCombination instanceof Bomb) {
+                    return Bomb.compareBombs(selectedCombination, this.tableState.currentCombination) > 0;
+                }
+                return true;
+            }
+            if (selectedCombination.combination === this.tableState.currentCombination.combination) {
+                return this.tableState.currentCombination.compareCombination(selectedCombination) < 0;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Called when a player attempts to play some cards.
+     * 
+     * Performs all the necessary checks for the cards to be played. If they can be played,
+     * the Gameboard state will be set accordingly, otherwise they will be rejected
+     * and an alert message will be displayed to indicate the reason.
+     * @param playerKey The key of the player.
+     * @param selectedCardKeys The keys of the cards selected by the player.
+     */
+    playCards(playerKey: string, selectedCardKeys: string[]) {
+        let newState: NewGameboardState = {};
+        newState.playerHands = {};
+        newState.gameRoundWinnerKey = gameboard.state.gameRoundWinnerKey;
+        let requestedCard = gameboard.state.table.requestedCardName;
+        let nextPlayerIndex = (gameboard.state.currentPlayerIndex + 1) % 4;
+
+        // GameLogic.filterNextPlayerHands(gameboard, newState, allPlayerCards, selectedCards, playerKey);
+        const playerHand = this.playerHands[playerKey];
+        
+        if (!playerHand) throw Error(`Invalid player key: ${playerKey}`);
+
+        const selectedCards = selectedCardKeys.map(key => {
+            const card = playerHand.find(c => c.key === key);
+            if (!card) throw new Error(`Player does not own a card with key: ${key}`);
+            return card;
+        });
+
+        let combination = createCombination( selectedCards, this.tableState.currentCards );
+        if (combination !== null) {
+            if (this.pendingMahjongRequest !== '') {
+                // if (!GameLogic.pendingMahjongRequestCheck(gameboard, selectedCards, combination)) {
+                //     return;
+                // }
+                requestedCard = this.pendingMahjongRequest;
+            }
+            else if (this.pendingBombToBePlayed) {
+                // if (!GameLogic.pendingBombCheck(gameboard, combination)) {
+                //     return;
+                // }
+            }
+            else if (this.tableState.requestedCardName !== '') {
+                // if (!GameLogic.requestedCardCheck(gameboard, allPlayerCards, selectedCards, combination)) {
+                //     return;
+                // }
+            }
+            else {
+                if (!this.isPlayable(this.tableState.currentCombination, combination) ) {
+                    // window.alert("This combination cannot be played");
+                    return;
+                }
+            }
+            if (selectedCards[0].name === specialCards.DOGS) {
+                nextPlayerIndex = (this.currentPlayerIndex + 2) % 4;
+                selectedCards = [];
+                combination = null;
+            }
+            let requestObject: RequestedCardObject = { card: requestedCard };
+            if (this.pendingMahjongRequest === '') {
+                // GameLogic.attemptToSatisfyRequest(requestObject, selectedCards);
+            }
+            while (this.playerHands[playerKeys[nextPlayerIndex]].length === 0) {
+                nextPlayerIndex = (nextPlayerIndex + 1) % 4;
+            }
+            if (newState.gameRoundWinnerKey === '' && newState.playerHands[playerKey].length === 0) {
+                newState.gameRoundWinnerKey = playerKey;
+            }
+            // GameLogic.setAfterPlayState(gameboard, selectedCards, newState, combination,
+            //                             nextPlayerIndex, requestObject.card);
+        }
+        else {
+            throw new Error('Invalid card combination');
+        }
+    }
+
+    /**
+     * Returns `true` if the player with the specified cards can pass, based on the
+     * requested card and the current table combination.
+     * @param playerCards The player's cards.
+     */
+    canPassTurn(playerCards: Array<CardInfo>) {
+        if (this.tableState.requestedCardName === "") { return true; }
+        if (this.tableState.currentCombination !== null) {
+            switch(this.tableState.currentCombination.combination) {
+                case cardCombinations.BOMB:
+                    return this.tableState.currentCombination.compare(
+                        playerCards,
+                        this.tableState.requestedCardName
+                    ) >= 0;
+                case cardCombinations.SINGLE:
+                case cardCombinations.COUPLE:
+                case cardCombinations.TRIPLET:
+                case cardCombinations.FULLHOUSE:
+                    if (
+                        this.tableState.currentCombination.compare(
+                            playerCards, this.tableState.requestedCardName
+                        ) < 0
+                    ) return false;
+                    break;
+                case cardCombinations.STEPS:
+                case cardCombinations.KENTA:
+                    if (
+                        this.tableState.currentCombination.compare(
+                            playerCards, 
+                            this.tableState.requestedCardName, 
+                            this.tableState.currentCombination.length
+                        ) < 0
+                    ) return false;
+                    break;
+                default:
+                    throw new UnexpectedCombinationType(tableCombination.combination);
+            }
+            return Bomb.getStrongestRequested(playerCards, this.tableState.requestedCardName) === null;
+        }
+        return false;
+    }
+
+    /**
+     * Called when the current player has chosen to pass.
+     * 
+     * If this is acceptable, the Gameboard state will be changed (it will be the next player's turn,
+     * and if the next player is the owner of the currently on-table cards, the round will end).
+     * Otherwise, an alert message will be displayed, and the current player will be forced to play.
+     */
+    passTurn() {
+        let nextPlayerIndex = (this.currentPlayerIndex + 1) % 4;
+        while (this.playerHands[playerKeys[nextPlayerIndex]].length === 0) {
+            if (nextPlayerIndex === this.tableState.currentCardsOwnerIndex) {
+                this.endTableRound();
+            }
+            nextPlayerIndex = (nextPlayerIndex + 1) % 4;
+        }
+        if (nextPlayerIndex === this.tableState.currentCardsOwnerIndex) {
+            this.endTableRound();
+        }
+        this.currentPlayerIndex = nextPlayerIndex;
+    }
+
+    /**
+     * Forces the on-table cards owner to choose an active opponent to hand the table cards to,
+     * by setting the Gameboard component state accordingly.
+     */
+    onPendingDragon() {
+        this.currentPlayerIndex = this.tableState.currentCardsOwnerIndex;
+        this.pendingDragonToBeGiven = true;
+    }
+
+    /**
+     * If the current game round can end normally, sets the new Gameboard component state accordingly,
+     * or sets up a Dragon card decision state
+     * 
+     * The currently on-table cards are handed to their owner (unless the Dragon is the top card,
+     * where the owner has to choose an active opponent to hand the cards to).
+     */
+    endTableRound() {
+        // Preparing for new round
+        if (this.tableState.currentCards[0].name === specialCards.DRAGON) {
+            this.onPendingDragon();
+            return;
+        }
+        this.playerHeaps[playerKeys[this.tableState.currentCardsOwnerIndex]]?.push(
+            ...this.tableState.previousCards, ...this.tableState.currentCards
+        );
+        this.tableState.endTableRound();
+    }
+
+    /**
      * Returns `true` if the current game round must end, `false` otherwise.
      */
     mustEndGameRound() {
@@ -116,7 +310,7 @@ export class GameboardState {
     /**
      * Calculates the score for this round.
      */
-    calculateRoundScore(): RoundScore {
+    calculateGameRoundScore(): RoundScore {
         let score = new RoundScore();
         let activePlayers = playerKeys.reduce((active, key) => {
             return active + (this.playerHands[key].length > 0 ? 1 : 0);
@@ -142,8 +336,7 @@ export class GameboardState {
 
     /**
      * Evaluates each team's points from the collected cards of each player.
-     * @param gameboard: The Gameboard component.
-     * @param points: A {@link RoundScore} object, with a slot to store each
+     * @param score: A {@link RoundScore} object, with a slot to store each
      * team's points.
      */
     private evaluateTeamPoints(score: RoundScore) {
@@ -192,8 +385,7 @@ export class GameboardState {
 
     /**
      * Evaluates each team's points after taking the player bets into account.
-     * @param gameboard The Gameboard component.
-     * @param points A {@link RoundScore} object, with a slot to store each
+     * @param score A {@link RoundScore} object, with a slot to store each
      * team's points.
      */
     private evaluatePlayerBets(score: RoundScore) {
