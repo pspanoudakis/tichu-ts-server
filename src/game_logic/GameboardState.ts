@@ -1,4 +1,11 @@
-import { Bomb, CardCombination, createCombination, UnexpectedCombinationType } from "./CardCombinations";
+import { 
+    Bomb, 
+    CardCombination, 
+    CardCombinationType, 
+    createCombination, 
+    SingleCard,
+    UnexpectedCombinationType
+} from "./CardCombinations";
 import { CardInfo, specialCards } from "./CardInfo";
 import { Deck } from "./Deck";
 
@@ -137,7 +144,7 @@ export class GameboardState {
         if (!selectedCards.some(card => card.name === specialCards.MAHJONG)) {
             throw new Error("The Mahjong must be played after a Mahjong request");
         }
-        if (!this.isPlayable(this.tableState.combination, combination)) {
+        if (!this.isPlayable(combination)) {
             throw new Error("This combination cannot be played");
         }
     }
@@ -173,9 +180,9 @@ export class GameboardState {
         selectedCombination: CardCombination,
         selectedCards: Array<CardInfo>
     ) {
-        if (selectedCombination.type === cardCombinations.BOMB) { return true; }
+        if (selectedCombination.type === CardCombinationType.BOMB) { return true; }
+        const requestedCardName = this.tableState.requestedCardName;
         if (this.tableState.currentCombination === null) {
-            const requestedCardName = this.tableState.requestedCardName;
             // See if there is *any* valid combination with the requested card
             if (SingleCard.getStrongestRequested(selectedCards, requestedCardName) === null &&
                 SingleCard.getStrongestRequested(allPlayerCards, requestedCardName) !== null) {
@@ -185,20 +192,20 @@ export class GameboardState {
         }
         else {
             switch (this.tableState.currentCombination.type) {
-                case cardCombinations.BOMB:
+                case CardCombinationType.BOMB:
                     return true;
-                case cardCombinations.SINGLE:
-                case cardCombinations.COUPLE:
-                case cardCombinations.TRIPLET:
-                case cardCombinations.FULLHOUSE:
+                case CardCombinationType.SINGLE:
+                case CardCombinationType.COUPLE:
+                case CardCombinationType.TRIPLET:
+                case CardCombinationType.FULLHOUSE:
                     if (this.tableState.currentCombination.compare(allPlayerCards, requestedCardName) < 0) {
                         if (!selectedCards.some(card => card.name === requestedCardName)) {
                             return false;
                         }
                     }
                     break;
-                case cardCombinations.STEPS:
-                case cardCombinations.KENTA:
+                case CardCombinationType.STEPS:
+                case CardCombinationType.KENTA:
                     if (
                         this.tableState.currentCombination.compare(
                             allPlayerCards,
@@ -238,7 +245,7 @@ export class GameboardState {
         )) {
             throw new Error("A combination which contains the requested card is required.");
         }
-        if (!this.isPlayable(this.tableState.currentCombination, combination)) {
+        if (!this.isPlayable(combination)) {
             throw new Error("This combination cannot be played");
         }
     }
@@ -253,9 +260,9 @@ export class GameboardState {
      * @param selectedCardKeys The keys of the cards selected by the player.
      */
     playCards(playerKey: string, selectedCardKeys: string[]) {
-        let nextPlayerIndex = (gameboard.state.currentPlayerIndex + 1) % 4;
+        let nextPlayerIndex = (this.currentPlayerIndex + 1) % 4;
         const playerHand = this.playerHands[playerKey];
-        const {
+        let {
             selectedCards,
             remainingCards
         } = playerHand.reduce(
@@ -275,7 +282,7 @@ export class GameboardState {
         let selectedCombination = createCombination(selectedCards, this.tableState.currentCards);
         if (selectedCombination !== null) {
             if (this.pendingMahjongRequest !== '') {
-                this.throwIfMahjongRequestCheckFailed(gameboard, selectedCards, combination);
+                this.throwIfMahjongRequestCheckFailed(selectedCards, selectedCombination);
                 this.tableState.requestedCardName = this.pendingMahjongRequest;
             }
             else if (this.pendingBombToBePlayed) {
@@ -285,7 +292,7 @@ export class GameboardState {
                 this.throwIfRequestedCardCheckFailed(playerHand, selectedCards, selectedCombination);
             }
             else {
-                if (!this.isPlayable(this.tableState.currentCombination, selectedCombination)) {
+                if (!this.isPlayable(selectedCombination)) {
                     throw new Error("The selected combination cannot be played");
                 }
             }
@@ -311,7 +318,7 @@ export class GameboardState {
             }
             this.tableState.previousCards.push(...this.tableState.currentCards);
             this.tableState.currentCards = selectedCards;
-            this.tableState.combination = selectedCombination;
+            this.tableState.currentCombination = selectedCombination;
             this.tableState.currentCardsOwnerIndex = this.currentPlayerIndex;
             this.playerHands[playerKey] = remainingCards;
             this.currentPlayerIndex = nextPlayerIndex;
@@ -333,23 +340,23 @@ export class GameboardState {
         if (this.tableState.requestedCardName === "") { return true; }
         if (this.tableState.currentCombination !== null) {
             switch (this.tableState.currentCombination.type) {
-                case cardCombinations.BOMB:
+                case CardCombinationType.BOMB:
                     return this.tableState.currentCombination.compare(
                         playerCards,
                         this.tableState.requestedCardName
                     ) >= 0;
-                case cardCombinations.SINGLE:
-                case cardCombinations.COUPLE:
-                case cardCombinations.TRIPLET:
-                case cardCombinations.FULLHOUSE:
+                case CardCombinationType.SINGLE:
+                case CardCombinationType.COUPLE:
+                case CardCombinationType.TRIPLET:
+                case CardCombinationType.FULLHOUSE:
                     if (
                         this.tableState.currentCombination.compare(
                             playerCards, this.tableState.requestedCardName
                         ) < 0
                     ) return false;
                     break;
-                case cardCombinations.STEPS:
-                case cardCombinations.KENTA:
+                case CardCombinationType.STEPS:
+                case CardCombinationType.KENTA:
                     if (
                         this.tableState.currentCombination.compare(
                             playerCards,
@@ -359,7 +366,7 @@ export class GameboardState {
                     ) return false;
                     break;
                 default:
-                    throw new UnexpectedCombinationType(tableCombination.combination);
+                    throw new UnexpectedCombinationType(this.tableState.currentCombination.type);
             }
             return Bomb.getStrongestRequested(playerCards, this.tableState.requestedCardName) === null;
         }

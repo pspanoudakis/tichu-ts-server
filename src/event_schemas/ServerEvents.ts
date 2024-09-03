@@ -1,3 +1,4 @@
+import { GameEvent } from "./GameEvent";
 import { GameBet } from "../game_logic/GameboardState";
 
 export enum ServerEventType {
@@ -15,66 +16,66 @@ export enum ServerEventType {
     GAME_ENDED = 'GAME_ENDED',
 };
 
-export type CardsPlayedEvent  = GameEvent<
+export type CardsPlayedEvent = GameEvent<
     ServerEventType.CARDS_PLAYED, {
         combinationType: string,
         tableCardKeys: string[],
     }
 >;
 
-export type TurnPassedEvent  = GameEvent<ServerEventType.TURN_PASSED, undefined>;
+export type TurnPassedEvent = GameEvent<ServerEventType.TURN_PASSED, undefined>;
 
-export type CardsTradedEvent  = GameEvent<
+export type CardsTradedEvent = GameEvent<
     ServerEventType.CARDS_TRADED, {
 
     }
 >;
 
-export type DragonGivenEvent  = GameEvent<
+export type DragonGivenEvent = GameEvent<
     ServerEventType.DRAGON_GIVEN, {
         dragonReceiverKey: string,
     }
 >;
 
-export type BetPlacedEvent  = GameEvent<
+export type BetPlacedEvent = GameEvent<
     ServerEventType.BET_PLACED, {
         betPoints: GameBet.TICHU | GameBet.GRAND_TICHU
     }
 >;
 
-export type BombDroppedEvent  = GameEvent<ServerEventType.BOMB_DROPPED, undefined>;
+export type BombDroppedEvent = GameEvent<ServerEventType.BOMB_DROPPED, undefined>;
 
-export type CardRequestedEvent  = GameEvent<
+export type CardRequestedEvent = GameEvent<
     ServerEventType.CARD_REQUESTED, {
         requestedCardKey: string
     }
 >;
 
-export type MessageSentEvent  = GameEvent<
+export type MessageSentEvent = GameEvent<
     ServerEventType.MESSAGE_SENT, {
         message: string,
     }
 >;
 
-export type TableRoundEndedEvent  = GameEvent<
+export type TableRoundEndedEvent = GameEvent<
     ServerEventType.TABLE_ROUND_ENDED, {
         
     }
 >;
 
-export type GameRoundStartedEvent  = GameEvent<
+export type GameRoundStartedEvent = GameEvent<
     ServerEventType.GAME_ROUND_STARTED, {
         
     }
 >;
 
-export type GameRoundEndedEvent  = GameEvent<
+export type GameRoundEndedEvent = GameEvent<
     ServerEventType.GAME_ROUND_ENDED, {
         
     }
 >;
 
-export type GameEvent  = GameEvent<
+export type GameEndedEvent = GameEvent<
     ServerEventType.GAME_ENDED, {
         
     }

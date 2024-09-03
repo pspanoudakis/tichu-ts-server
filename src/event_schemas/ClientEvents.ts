@@ -13,19 +13,13 @@ export enum ClientEventType {
     SEND_MESSAGE = 'SEND_MESSAGE',
 };
 
-export type PlayCardsEvent  = GameEvent<
+export type PlayCardsEvent = GameEvent<
     ClientEventType.PLAY_CARDS, {
         selectedCardKeys: string[],
     }
 >;
 
-export type TradeCardsEvent = GameEvent<
-    ClientEventType.TRADE_CARDS, {
-        teammateCardKey: string,
-        leftCardKey: string,
-        rightCardKey: string,
-    }
->;
+export type PassTurnEvent = GameEvent<ClientEventType.PASS_TURN, undefined>;
 
 export type TradeCardsEvent = GameEvent<
     ClientEventType.TRADE_CARDS, {
@@ -36,8 +30,6 @@ export type TradeCardsEvent = GameEvent<
 >;
 
 export type ReceiveTradeEvent = GameEvent<ClientEventType.RECEIVE_TRADE, undefined>;
-
-export type PassTurnEvent = GameEvent<ClientEventType.PASS_TURN, undefined>;
 
 export type GiveDragonEvent = GameEvent<
     ClientEventType.GIVE_DRAGON, {
