@@ -17,9 +17,11 @@ export enum GameBet {
     TICHU = 100,
     GRAND_TICHU = 200
 }
-
-type PlayerCards = {    
-    [playerKey in PlayerKey]: Array<CardInfo>
+class PlayerCards {
+    player1 = Array<CardInfo>();
+    player2 = Array<CardInfo>();
+    player3 = Array<CardInfo>();
+    player4 = Array<CardInfo>();
 }
 
 class TableState {
@@ -38,17 +40,10 @@ class TableState {
     }
 }
 
-const getEmptyPlayerCards = () => ({
-    player1: [],
-    player2: [],
-    player3: [],
-    player4: []
-} as PlayerCards);
-
 export class GameboardState {
     deck = new Deck();
-    playerHands: PlayerCards = getEmptyPlayerCards();
-    playerHeaps: PlayerCards = getEmptyPlayerCards();
+    playerHands = new PlayerCards();
+    playerHeaps = new PlayerCards();
     playerTrades: {
         [playerKey: string]: Array<[string, CardInfo]>
     } = {};
@@ -475,7 +470,7 @@ export class GameboardState {
      * team's points.
      */
     private evaluateTeamPoints(score: RoundScore) {
-        let playerHeaps = getEmptyPlayerCards();        
+        let playerHeaps = new PlayerCards();        
         PLAYER_KEYS.forEach((key, index) => {
             if (!this.gameRoundWinnerKey)
                 throw new Error('Unexpected Error: Game Round Winner not set.');
