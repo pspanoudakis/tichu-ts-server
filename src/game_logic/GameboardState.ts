@@ -1,3 +1,4 @@
+import { assert } from "console";
 import { 
     Bomb, 
     CardCombination, 
@@ -17,8 +18,8 @@ export enum GameBet {
     GRAND_TICHU = 200
 }
 
-interface PlayerCards {
-    [playerKey: PlayerKey]: Array<CardInfo>
+type PlayerCards = {    
+    [playerKey in PlayerKey]: Array<CardInfo>
 }
 
 class TableState {
@@ -37,10 +38,17 @@ class TableState {
     }
 }
 
+const getEmptyPlayerCards = () => ({
+    player1: [],
+    player2: [],
+    player3: [],
+    player4: []
+} as PlayerCards);
+
 export class GameboardState {
     deck = new Deck();
-    playerHands: PlayerCards = {};
-    playerHeaps: PlayerCards = {};
+    playerHands: PlayerCards = getEmptyPlayerCards();
+    playerHeaps: PlayerCards = getEmptyPlayerCards();
     playerTrades: {
         [playerKey: string]: Array<[string, CardInfo]>
     } = {};
@@ -55,7 +63,7 @@ export class GameboardState {
     pendingDragonToBeGiven = false;
     pendingBombToBePlayed = false;
     tableState: TableState = new TableState();
-    gameRoundWinnerKey = '';
+    gameRoundWinnerKey: PlayerKey | '' = '';
 
     constructor() {
         this.handCards();
@@ -253,7 +261,7 @@ export class GameboardState {
      * @param playerKey The key of the player.
      * @param selectedCardKeys The keys of the cards selected by the player.
      */
-    playCards(playerKey: string, selectedCardKeys: string[]) {
+    playCards(playerKey: PlayerKey, selectedCardKeys: string[]) {
         let nextPlayerIndex = (this.currentPlayerIndex + 1) % 4;
         const playerHand = this.playerHands[playerKey];
         let {
@@ -440,6 +448,8 @@ export class GameboardState {
         let activePlayers = PLAYER_KEYS.reduce((active, key) => {
             return active + (this.playerHands[key].length > 0 ? 1 : 0);
         }, 0);
+        if (!this.gameRoundWinnerKey)
+            throw new Error('Unexpected Error: Game Round Winner not set.');
         if (activePlayers > 1) {
             // More than 2 players are still active, but the round must end,
             // so one team has a clear round win:
@@ -465,14 +475,10 @@ export class GameboardState {
      * team's points.
      */
     private evaluateTeamPoints(score: RoundScore) {
-        let playerHeaps: PlayerCards = {
-            player1: [],
-            player2: [],
-            player3: [],
-            player4: []
-        };
-        const winnerKey = this.gameRoundWinnerKey;
+        let playerHeaps = getEmptyPlayerCards();        
         PLAYER_KEYS.forEach((key, index) => {
+            if (!this.gameRoundWinnerKey)
+                throw new Error('Unexpected Error: Game Round Winner not set.');
             if (this.tableState.currentCardsOwnerIndex === index) {
                 if (this.tableState.currentCards[0].name !== specialCards.DRAGON) {
                     playerHeaps[key].push(...this.tableState.currentCards,
@@ -481,10 +487,10 @@ export class GameboardState {
             }
             if (this.playerHands[key].length > 0) {
                 if (this.tableState.currentCards[0].name === specialCards.DRAGON) {
-                    playerHeaps[winnerKey].push(...this.tableState.currentCards,
+                    playerHeaps[this.gameRoundWinnerKey].push(...this.tableState.currentCards,
                         ...this.tableState.previousCards);
                 }
-                playerHeaps[winnerKey].push(...playerHeaps[key], ...this.playerHeaps[key]);
+                playerHeaps[this.gameRoundWinnerKey].push(...playerHeaps[key], ...this.playerHeaps[key]);
                 if (index % 2 === 0) {
                     score.team13 += CardInfo.evaluatePoints(this.playerHands[key]);
                 }
