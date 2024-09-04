@@ -1,5 +1,3 @@
-import { cardImages } from "./CardResources";
-
 /** Possible card colors. */
 export const cardColors = {
     BLACK: 'black',

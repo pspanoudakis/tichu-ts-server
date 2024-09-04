@@ -1,5 +1,5 @@
 import { GameBet } from "../game_logic/GameboardState";
-import { GameEvent } from "./GameEvent";
+import { CardKey, CardName, GameEvent, PlayerKey } from "./GameEvent";
 
 export enum ClientEventType {
     PLAY_CARDS = 'PLAY_CARDS',
@@ -7,6 +7,7 @@ export enum ClientEventType {
     TRADE_CARDS = 'TRADE_CARDS',
     RECEIVE_TRADE = 'RECEIVE_TRADE',
     GIVE_DRAGON = 'GIVE_DRAGON',
+    REVEAL_ALL_CARDS = 'REVEAL_ALL_CARDS',
     PLACE_BET = 'PLACE_BET',
     DROP_BOMB = 'DROP_BOMB',
     REQUEST_CARD = 'REQUEST_CARD',
@@ -15,7 +16,7 @@ export enum ClientEventType {
 
 export type PlayCardsEvent = GameEvent<
     ClientEventType.PLAY_CARDS, {
-        selectedCardKeys: string[],
+        selectedCardKeys: CardKey[],
     }
 >;
 
@@ -23,9 +24,9 @@ export type PassTurnEvent = GameEvent<ClientEventType.PASS_TURN, undefined>;
 
 export type TradeCardsEvent = GameEvent<
     ClientEventType.TRADE_CARDS, {
-        teammateCardKey: string,
-        leftCardKey: string,
-        rightCardKey: string,
+        teammateCardKey: CardKey,
+        leftCardKey: CardKey,
+        rightCardKey: CardKey,
     }
 >;
 
@@ -33,7 +34,7 @@ export type ReceiveTradeEvent = GameEvent<ClientEventType.RECEIVE_TRADE, undefin
 
 export type GiveDragonEvent = GameEvent<
     ClientEventType.GIVE_DRAGON, {
-        chosenOponentKey: string,
+        chosenOponentKey: PlayerKey,
     }
 >;
 
@@ -47,7 +48,7 @@ export type DropBombEvent = GameEvent<ClientEventType.DROP_BOMB, undefined>;
 
 export type RequestCardEvent = GameEvent<
     ClientEventType.REQUEST_CARD, {
-        requestedCardName: string
+        requestedCardName: CardName
     }
 >;
 

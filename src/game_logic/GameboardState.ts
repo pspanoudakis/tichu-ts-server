@@ -8,8 +8,7 @@ import {
 } from "./CardCombinations";
 import { CardInfo, specialCards } from "./CardInfo";
 import { Deck } from "./Deck";
-
-export const playerKeys = ['player1', 'player2', 'player3', 'player4'];
+import { PLAYER_KEYS, PlayerKey, RoundScore } from "./GameState";
 
 /** Possible player bet points */
 export enum GameBet {
@@ -19,12 +18,7 @@ export enum GameBet {
 }
 
 interface PlayerCards {
-    [playerKey: string]: Array<CardInfo>
-}
-
-class RoundScore {
-    team02 = 0;
-    team13 = 0;
+    [playerKey: PlayerKey]: Array<CardInfo>
 }
 
 class TableState {
@@ -71,14 +65,14 @@ export class GameboardState {
      * Hands the Deck cards to the players (in round-robin order).
      */
     private handCards() {
-        for (const key of playerKeys) {
+        for (const key of PLAYER_KEYS) {
             this.playerHands[key] = [];
         }
         let i = 0;
         let card;
         while ((card = this.deck.cards.pop()) !== undefined) {
-            this.playerHands[playerKeys[i++]].push(card)
-            i %= playerKeys.length;
+            this.playerHands[PLAYER_KEYS[i++]].push(card)
+            i %= PLAYER_KEYS.length;
         }
     }
 
@@ -93,7 +87,7 @@ export class GameboardState {
             player3: [],
             player4: [],
         };
-        playerKeys.forEach((key, index) => {
+        PLAYER_KEYS.forEach((key, index) => {
             for (const card of this.playerHands[key]) {
                 if (!card.isSelected) {
                     playerHands[key].push(card);
@@ -310,7 +304,7 @@ export class GameboardState {
                     }
                 }
             }
-            while (this.playerHands[playerKeys[nextPlayerIndex]].length === 0) {
+            while (this.playerHands[PLAYER_KEYS[nextPlayerIndex]].length === 0) {
                 nextPlayerIndex = (nextPlayerIndex + 1) % 4;
             }
             if (this.gameRoundWinnerKey === '' && this.playerHands[playerKey].length === 0) {
@@ -382,7 +376,7 @@ export class GameboardState {
      */
     passTurn() {
         let nextPlayerIndex = (this.currentPlayerIndex + 1) % 4;
-        while (this.playerHands[playerKeys[nextPlayerIndex]].length === 0) {
+        while (this.playerHands[PLAYER_KEYS[nextPlayerIndex]].length === 0) {
             if (nextPlayerIndex === this.tableState.currentCardsOwnerIndex) {
                 this.endTableRound();
             }
@@ -416,7 +410,7 @@ export class GameboardState {
             this.onPendingDragon();
             return;
         }
-        this.playerHeaps[playerKeys[this.tableState.currentCardsOwnerIndex]]?.push(
+        this.playerHeaps[PLAYER_KEYS[this.tableState.currentCardsOwnerIndex]]?.push(
             ...this.tableState.previousCards, ...this.tableState.currentCards
         );
         this.tableState.endTableRound();
@@ -427,12 +421,12 @@ export class GameboardState {
      */
     mustEndGameRound() {
         // End the round if both players of a team have no cards left
-        if (this.playerHands[playerKeys[0]].length === 0 &&
-            this.playerHands[playerKeys[2]].length === 0) {
+        if (this.playerHands[PLAYER_KEYS[0]].length === 0 &&
+            this.playerHands[PLAYER_KEYS[2]].length === 0) {
             return true;
         }
-        if (this.playerHands[playerKeys[1]].length === 0 &&
-            this.playerHands[playerKeys[3]].length === 0) {
+        if (this.playerHands[PLAYER_KEYS[1]].length === 0 &&
+            this.playerHands[PLAYER_KEYS[3]].length === 0) {
             return true;
         }
         return false;
@@ -443,13 +437,13 @@ export class GameboardState {
      */
     calculateGameRoundScore(): RoundScore {
         let score = new RoundScore();
-        let activePlayers = playerKeys.reduce((active, key) => {
+        let activePlayers = PLAYER_KEYS.reduce((active, key) => {
             return active + (this.playerHands[key].length > 0 ? 1 : 0);
         }, 0);
         if (activePlayers > 1) {
             // More than 2 players are still active, but the round must end,
             // so one team has a clear round win:
-            if (playerKeys.indexOf(this.gameRoundWinnerKey) % 2 === 0) {
+            if (PLAYER_KEYS.indexOf(this.gameRoundWinnerKey) % 2 === 0) {
                 score.team02 += 200;
             }
             else {
@@ -478,7 +472,7 @@ export class GameboardState {
             player4: []
         };
         const winnerKey = this.gameRoundWinnerKey;
-        playerKeys.forEach((key, index) => {
+        PLAYER_KEYS.forEach((key, index) => {
             if (this.tableState.currentCardsOwnerIndex === index) {
                 if (this.tableState.currentCards[0].name !== specialCards.DRAGON) {
                     playerHeaps[key].push(...this.tableState.currentCards,
@@ -504,7 +498,7 @@ export class GameboardState {
                 }
             }
         });
-        playerKeys.forEach((key, index) => {
+        PLAYER_KEYS.forEach((key, index) => {
             if (index % 2 === 0) {
                 score.team02 += CardInfo.evaluatePoints(playerHeaps[key]);
             }
@@ -520,7 +514,7 @@ export class GameboardState {
      * team's points.
      */
     private evaluatePlayerBets(score: RoundScore) {
-        playerKeys.forEach((playerKey, index) => {
+        PLAYER_KEYS.forEach((playerKey, index) => {
             if (!this.playerBets[playerKey]) return;
             let contribution = 0;
             if (this.gameRoundWinnerKey === playerKey) {
