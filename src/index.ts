@@ -1,4 +1,4 @@
-Addimport { GameServer } from './GameServer';
+import { GameServer } from './GameServer';
 
 const server = GameServer.getInstance();
 
