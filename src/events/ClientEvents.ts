@@ -3,6 +3,8 @@ import { PlayerKey } from "../game_logic/GameState";
 import { CardKey, CardName, GameEvent } from "./GameEvent";
 
 export enum ClientEventType {
+    ROOM_CREATED = 'ROOM_CREATED',
+    JOIN_GAME = 'JOIN_GAME',
     PLAY_CARDS = 'PLAY_CARDS',
     PASS_TURN = 'PASS_TURN',
     TRADE_CARDS = 'TRADE_CARDS',
@@ -14,6 +16,18 @@ export enum ClientEventType {
     REQUEST_CARD = 'REQUEST_CARD',
     SEND_MESSAGE = 'SEND_MESSAGE',
 };
+
+export type RoomCreatedEvent = GameEvent<
+    ClientEventType.ROOM_CREATED, {
+        winningScore: number,
+    }
+>
+
+export type JoinGameEvent = GameEvent<
+    ClientEventType.JOIN_GAME, {
+        playerNickname: string,
+    }
+>;
 
 export type PlayCardsEvent = GameEvent<
     ClientEventType.PLAY_CARDS, {

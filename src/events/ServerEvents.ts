@@ -5,6 +5,8 @@ import { GameWinnerResult } from "../game_logic/GameWinnerResult";
 import { PlayerKey, RoundScore } from "../game_logic/GameState";
 
 export enum ServerEventType {
+    PLAYER_JOINED = 'PLAYER_JOINED',
+    PLAYER_LEFT = 'PLAYER_LEFT',
     ALL_CARDS_REVEALED = 'ALL_CARDS_REVEALED',
     CARDS_PLAYED = 'CARDS_PLAYED',
     TURN_PASSED = 'TURN_PASSED',
@@ -20,6 +22,15 @@ export enum ServerEventType {
     GAME_ROUND_ENDED = 'GAME_ROUND_ENDED',
     GAME_ENDED = 'GAME_ENDED',
 };
+
+export type PlayerJoinedEvent = GameEvent<
+    ServerEventType.PLAYER_JOINED,
+    {
+        playerNickname: string
+    }
+>;
+
+export type PlayerLeftEvent = GameEvent<ServerEventType.PLAYER_LEFT>
 
 export type AllCardsRevealedEvent = GameEvent<
     ServerEventType.ALL_CARDS_REVEALED, {
