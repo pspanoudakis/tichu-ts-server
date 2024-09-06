@@ -138,10 +138,10 @@ export class GameboardState {
     private throwIfMahjongRequestCheckFailed(selectedCards: CardInfo[], combination: CardCombination) {
         // If there is a pending mahjong request, the player must play the Mahjong
         if (!selectedCards.some(card => card.name === specialCards.MAHJONG)) {
-            throw new Error("The Mahjong must be played after a Mahjong request");
+            throw new BusinessError("The Mahjong must be played after a Mahjong request");
         }
         if (!this.isPlayable(combination)) {
-            throw new Error("This combination cannot be played");
+            throw new BusinessError("This combination cannot be played");
         }
     }
 
@@ -155,12 +155,12 @@ export class GameboardState {
             const tableCombination = this.tableState.currentCombination;
             if (tableCombination !== null && tableCombination instanceof Bomb) {
                 if (Bomb.compareBombs(tableCombination, combination) >= 0) {
-                    throw new Error("The selected combination cannot be played");
+                    throw new BusinessError("The selected combination cannot be played");
                 }
             }
         }
         else {
-            throw new Error("A bomb must be played");
+            throw new BusinessError("A bomb must be played");
         }
     }
 
@@ -239,10 +239,10 @@ export class GameboardState {
             combination,
             selectedCards
         )) {
-            throw new Error("A combination which contains the requested card is required.");
+            throw new BusinessError("A combination which contains the requested card is required.");
         }
         if (!this.isPlayable(combination)) {
-            throw new Error("This combination cannot be played");
+            throw new BusinessError("This combination cannot be played");
         }
     }
 
@@ -289,7 +289,7 @@ export class GameboardState {
             }
             else {
                 if (!this.isPlayable(selectedCombination)) {
-                    throw new Error("The selected combination cannot be played");
+                    throw new BusinessError("The selected combination cannot be played");
                 }
             }
 
@@ -323,7 +323,7 @@ export class GameboardState {
             this.pendingMahjongRequest = '';
         }
         else {
-            throw new Error('Invalid or too weak card combination');
+            throw new BusinessError('Invalid or too weak card combination');
         }
     }
 

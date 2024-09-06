@@ -32,6 +32,6 @@ export class GameSession {
                 return key;
             }
         }
-        throw Error(`Session is full.`);
+        throw new BusinessError(`Session is full.`);
     }
 }

@@ -1,5 +1,5 @@
-import { ClientEventType, CreateRoomEvent } from "./events/ClientEvents";
-import { RoomCreatedEvent, ServerEventType } from "./events/ServerEvents";
+import { ClientEventType, CreateRoomEvent, JoinGameEvent } from "./events/ClientEvents";
+import { PlayerJoinedEvent, RoomCreatedEvent, ServerEventType } from "./events/ServerEvents";
 import { GameSession } from "./GameSession";
 import express, { Response as ExpressResponse } from "express";
 
@@ -16,6 +16,12 @@ export class GameServer {
             // validate...
             GameServer.responseCreator(res, () => 
                 this.handleCreateRoomEvent(req.body as CreateRoomEvent)
+            );
+        });
+        this.express.post('/join', (req, res) => {
+            // validate...
+            GameServer.responseCreator(res, () => 
+                this.handleJoinGameEvent(req.body as JoinGameEvent)
             );
         });
         this.express.get('/', (req, res) => {
@@ -35,7 +41,7 @@ export class GameServer {
         try {
             res.status(200).send(bodyCreator());
         } catch (err) {
-            if (err instanceof BadRequestError)
+            if (err instanceof BusinessError)
                 res.status(400);
             else
                 res.status(500);
@@ -57,18 +63,39 @@ export class GameServer {
             `session_${sessionId}_${new Date().toISOString()}`, session
         );
         // Add player in session
-        const playerKey = session.addPlayerOrElseThrow({
+        const outEvt = this.handleJoinGameEvent({
             eventType: ClientEventType.JOIN_GAME,
             data: {
+                sessionId,
                 playerNickname: e.data.playerNickname
             }
         });
         return {
+            playerKey: outEvt.playerKey,
             eventType: ServerEventType.ROOM_CREATED,
             data: {
                 sessionId,
-                playerKey,
+            },
+        };
+    }
+
+    handleJoinGameEvent(e: JoinGameEvent): PlayerJoinedEvent {
+        const session = this.sessions.get(e.data.sessionId);
+        if (!session) 
+            throw new BusinessError(
+                `Session: '${e.data.sessionId}' does not exist.`
+            );
+        session.addPlayerOrElseThrow(e);
+
+        // broadcast join in other players
+        const evt: PlayerJoinedEvent = {
+            eventType: ServerEventType.PLAYER_JOINED,
+            playerKey: e.playerKey,
+            data: {
+                playerNickname: e.data.playerNickname
             }
-        }
+        };
+
+        return evt;
     }
 }

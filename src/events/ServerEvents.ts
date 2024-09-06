@@ -28,7 +28,6 @@ export type RoomCreatedEvent = GameEvent<
     ServerEventType.ROOM_CREATED,
     {
         sessionId: string,
-        playerKey: PlayerKey,
     }
 >;
 

@@ -17,6 +17,12 @@ export enum ClientEventType {
     SEND_MESSAGE = 'SEND_MESSAGE',
 };
 
+type SessionClientEvent<T, D = undefined> = GameEvent<
+    T, D & {
+        sessionId: string,
+    }
+>
+
 export type CreateRoomEvent = GameEvent<
     ClientEventType.CREATE_ROOM, {
         winningScore: number,
@@ -24,19 +30,19 @@ export type CreateRoomEvent = GameEvent<
     }
 >;
 
-export type JoinGameEvent = GameEvent<
+export type JoinGameEvent = SessionClientEvent<
     ClientEventType.JOIN_GAME, {
         playerNickname: string,
     }
 >;
 
-export type PlayCardsEvent = GameEvent<
+export type PlayCardsEvent = SessionClientEvent<
     ClientEventType.PLAY_CARDS, {
         selectedCardKeys: CardKey[],
     }
 >;
 
-export type PassTurnEvent = GameEvent<ClientEventType.PASS_TURN>;
+export type PassTurnEvent = SessionClientEvent<ClientEventType.PASS_TURN>;
 
 export type TradeCardsEvent = GameEvent<
     ClientEventType.TRADE_CARDS, {
@@ -46,29 +52,29 @@ export type TradeCardsEvent = GameEvent<
     }
 >;
 
-export type ReceiveTradeEvent = GameEvent<ClientEventType.RECEIVE_TRADE>;
+export type ReceiveTradeEvent = SessionClientEvent<ClientEventType.RECEIVE_TRADE>;
 
-export type GiveDragonEvent = GameEvent<
+export type GiveDragonEvent = SessionClientEvent<
     ClientEventType.GIVE_DRAGON, {
         chosenOponentKey: PlayerKey,
     }
 >;
 
-export type PlaceBetEvent = GameEvent<
+export type PlaceBetEvent = SessionClientEvent<
     ClientEventType.PLACE_BET, {
         betPoints: GameBet.TICHU | GameBet.GRAND_TICHU
     }
 >;
 
-export type DropBombEvent = GameEvent<ClientEventType.DROP_BOMB>;
+export type DropBombEvent = SessionClientEvent<ClientEventType.DROP_BOMB>;
 
-export type RequestCardEvent = GameEvent<
+export type RequestCardEvent = SessionClientEvent<
     ClientEventType.REQUEST_CARD, {
         requestedCardName: CardName
     }
 >;
 
-export type SendMessageEvent = GameEvent<
+export type SendMessageEvent = SessionClientEvent<
     ClientEventType.SEND_MESSAGE, {
         message: string
     }
