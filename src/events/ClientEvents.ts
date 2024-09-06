@@ -3,7 +3,7 @@ import { PlayerKey } from "../game_logic/GameState";
 import { CardKey, CardName, GameEvent } from "./GameEvent";
 
 export enum ClientEventType {
-    ROOM_CREATED = 'ROOM_CREATED',
+    CREATE_ROOM = 'CREATE_ROOM',
     JOIN_GAME = 'JOIN_GAME',
     PLAY_CARDS = 'PLAY_CARDS',
     PASS_TURN = 'PASS_TURN',
@@ -17,8 +17,8 @@ export enum ClientEventType {
     SEND_MESSAGE = 'SEND_MESSAGE',
 };
 
-export type RoomCreatedEvent = GameEvent<
-    ClientEventType.ROOM_CREATED, {
+export type CreateRoomEvent = GameEvent<
+    ClientEventType.CREATE_ROOM, {
         winningScore: number,
         playerNickname: string,
     }

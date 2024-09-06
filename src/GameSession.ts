@@ -2,7 +2,7 @@ import http from "http";
 import { Express } from "express";
 import { Server } from "socket.io";
 import { GameClient } from "./GameClient";
-import { JoinGameEvent, RoomCreatedEvent } from "./events/ClientEvents";
+import { JoinGameEvent, CreateRoomEvent } from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
 
 export class GameSession {
@@ -19,7 +19,7 @@ export class GameSession {
     };
     gameState: GameState;
 
-    constructor(express: Express, sessionId: string, event: RoomCreatedEvent) {
+    constructor(express: Express, sessionId: string, event: CreateRoomEvent) {
         this.id = sessionId;
         this.gameState = new GameState(event.data.winningScore);
         this.socketServer = new Server(http.createServer(express));

@@ -1,5 +1,13 @@
-import { ClientEventType, RoomCreatedEvent } from './events/ClientEvents';
+import { CreateRoomEvent } from './events/ClientEvents';
 import { GameServer } from './GameServer';
+
+const responseCreator = (res: any, bodyCreator: () => any) => {
+    try {
+        res.send(bodyCreator()).status(200);
+    } catch (error) {
+        res.send({ error: String(error) }).status(500);
+    }
+}
 
 const gs = GameServer.getInstance();
 
@@ -8,19 +16,10 @@ const SERVER_CONFIG = {
 };
 
 gs.express.post('/', (req, res) => {
-    const request = req.body as RoomCreatedEvent;
-    const sessionId = `session_${String(new Date().getTime())}`;
-    gs.addSession(sessionId, request);
-    const playerKey = gs.sessions.get(sessionId)?.addPlayerOrElseThrow({
-        eventType: ClientEventType.JOIN_GAME,
-        data: {
-            playerNickname: request.data.playerNickname
-        }
-    })
-    res.send({
-        sessionId,
-        playerKey
-    });
+    // validate... (zod?)
+    responseCreator(res, () => 
+        gs.handleCreateRoomEvent(req.body as CreateRoomEvent)
+    );
 });
 
 gs.express.get('/', (req, res) => {
