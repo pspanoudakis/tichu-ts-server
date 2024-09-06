@@ -20,8 +20,9 @@ export enum ClientEventType {
 export type RoomCreatedEvent = GameEvent<
     ClientEventType.ROOM_CREATED, {
         winningScore: number,
+        playerNickname: string,
     }
->
+>;
 
 export type JoinGameEvent = GameEvent<
     ClientEventType.JOIN_GAME, {
@@ -35,7 +36,7 @@ export type PlayCardsEvent = GameEvent<
     }
 >;
 
-export type PassTurnEvent = GameEvent<ClientEventType.PASS_TURN, undefined>;
+export type PassTurnEvent = GameEvent<ClientEventType.PASS_TURN>;
 
 export type TradeCardsEvent = GameEvent<
     ClientEventType.TRADE_CARDS, {
@@ -45,7 +46,7 @@ export type TradeCardsEvent = GameEvent<
     }
 >;
 
-export type ReceiveTradeEvent = GameEvent<ClientEventType.RECEIVE_TRADE, undefined>;
+export type ReceiveTradeEvent = GameEvent<ClientEventType.RECEIVE_TRADE>;
 
 export type GiveDragonEvent = GameEvent<
     ClientEventType.GIVE_DRAGON, {
@@ -57,9 +58,9 @@ export type PlaceBetEvent = GameEvent<
     ClientEventType.PLACE_BET, {
         betPoints: GameBet.TICHU | GameBet.GRAND_TICHU
     }
->
+>;
 
-export type DropBombEvent = GameEvent<ClientEventType.DROP_BOMB, undefined>;
+export type DropBombEvent = GameEvent<ClientEventType.DROP_BOMB>;
 
 export type RequestCardEvent = GameEvent<
     ClientEventType.REQUEST_CARD, {

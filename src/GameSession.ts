@@ -1,9 +1,14 @@
+import http from "http";
+import { Express } from "express";
+import { Server } from "socket.io";
 import { GameClient } from "./GameClient";
-import { GameState, PlayerKey } from "./game_logic/GameState";
+import { JoinGameEvent, RoomCreatedEvent } from "./events/ClientEvents";
+import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
 
 export class GameSession {
     readonly id: string;
-    gameState: GameState;
+
+    socketServer: Server;
     clients: {
         [playerKey in PlayerKey]: GameClient | null;
     } = {
@@ -12,8 +17,21 @@ export class GameSession {
         player3: null,
         player4: null,
     };
+    gameState: GameState;
 
-    constructor(sessionId: string) {
+    constructor(express: Express, sessionId: string, event: RoomCreatedEvent) {
         this.id = sessionId;
+        this.gameState = new GameState(event.data.winningScore);
+        this.socketServer = new Server(http.createServer(express));
+    }
+
+    addPlayerOrElseThrow(e: JoinGameEvent) {
+        for (const key of PLAYER_KEYS) {
+            if (this.clients[key] === null) {
+                this.clients[key] = new GameClient(key, e.data.playerNickname);
+                return key;
+            }
+        }
+        throw Error(`Session is full.`);
     }
 }

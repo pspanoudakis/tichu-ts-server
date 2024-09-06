@@ -46,7 +46,7 @@ export type CardsPlayedEvent = GameEvent<
     }
 >;
 
-export type TurnPassedEvent = GameEvent<ServerEventType.TURN_PASSED, undefined>;
+export type TurnPassedEvent = GameEvent<ServerEventType.TURN_PASSED>;
 
 export type CardsTradedEvent = GameEvent<
     ServerEventType.CARDS_TRADED, {
@@ -68,7 +68,7 @@ export type BetPlacedEvent = GameEvent<
     }
 >;
 
-export type BombDroppedEvent = GameEvent<ServerEventType.BOMB_DROPPED, undefined>;
+export type BombDroppedEvent = GameEvent<ServerEventType.BOMB_DROPPED>;
 
 export type CardRequestedEvent = GameEvent<
     ServerEventType.CARD_REQUESTED, {
