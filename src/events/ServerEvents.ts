@@ -24,13 +24,6 @@ export enum ServerEventType {
     GAME_ENDED = 'GAME_ENDED',
 };
 
-export type RoomCreatedEvent = GameEvent<
-    ServerEventType.ROOM_CREATED,
-    {
-        sessionId: string,
-    }
->;
-
 export type PlayerJoinedEvent = GameEvent<
     ServerEventType.PLAYER_JOINED,
     {

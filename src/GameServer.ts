@@ -1,14 +1,17 @@
-import { BusinessError } from "./controllers/BusinessError";
+import http from "http";
+import { Server } from "socket.io";
+import { BusinessError } from "./responses/BusinessError";
 import { ClientEventType, CreateRoomEvent, JoinGameEvent } from "./events/ClientEvents";
-import { PlayerJoinedEvent, RoomCreatedEvent, ServerEventType } from "./events/ServerEvents";
 import { GameSession } from "./GameSession";
 import express, { Response as ExpressResponse } from "express";
+import { JoinGameResponse, RoomCreatedResponse } from "./responses/ServerResponses";
 
 export class GameServer {
 
     private static instance: GameServer | null = null;
 
     express = express();
+    socketServer: Server;
     sessions = new Map<string, GameSession>();
     private sessionIdSeq = 0;
 
@@ -29,6 +32,13 @@ export class GameServer {
         this.express.get('/', (req, res) => {
             res.send('Hello from Node TS!');
         });
+        this.socketServer = new Server(
+            http.createServer(express) , {
+                cors: {
+                    origin: '*'
+                }
+            }
+        );
     }
 
     private generateSessionId() {
@@ -41,7 +51,7 @@ export class GameServer {
 
     static responseCreator(res: ExpressResponse, bodyCreator: () => any) {
         try {
-            res.status(200).json(bodyCreator());
+            res.json(bodyCreator()).status(200);
         } catch (err) {
             if (err instanceof BusinessError)
                 res.status(400);
@@ -57,10 +67,10 @@ export class GameServer {
         });
     }
 
-    handleCreateRoomEvent(e: CreateRoomEvent): RoomCreatedEvent {
+    handleCreateRoomEvent(e: CreateRoomEvent): RoomCreatedResponse {
         // Create new session
         const sessionId = this.generateSessionId();
-        const session = new GameSession(this.express, sessionId, e);
+        const session = new GameSession(sessionId, this.socketServer, e);
         if (this.sessions.has(sessionId))
             throw new Error(`Regenerated existing session id: '${sessionId}'`);
         this.sessions.set(sessionId, session);
@@ -74,29 +84,25 @@ export class GameServer {
         });
         return {
             playerKey: outEvt.playerKey,
-            eventType: ServerEventType.ROOM_CREATED,
-            data: {
-                sessionId,
-            },
+            sessionId,
         };
     }
 
-    handleJoinGameEvent(e: JoinGameEvent): PlayerJoinedEvent {
+    handleJoinGameEvent(e: JoinGameEvent): JoinGameResponse {
         const session = this.sessions.get(e.data.sessionId);
         if (!session) 
             throw new BusinessError(
                 `Session: '${e.data.sessionId}' does not exist.`
             );
 
-        const evt: PlayerJoinedEvent = {
-            eventType: ServerEventType.PLAYER_JOINED,
+        return {
             playerKey: session.addPlayerOrElseThrow(e),
-            data: {
-                playerNickname: e.data.playerNickname
+            playerNicknames: {
+                player1: session.clients.player1?.nickname,
+                player2: session.clients.player2?.nickname,
+                player3: session.clients.player3?.nickname,
+                player4: session.clients.player4?.nickname,
             }
         };
-        // broadcast join in other players
-
-        return evt;
     }
 }

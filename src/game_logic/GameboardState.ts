@@ -1,4 +1,4 @@
-import { BusinessError } from "../controllers/BusinessError";
+import { BusinessError } from "../responses/BusinessError";
 import { 
     Bomb, 
     CardCombination, 
