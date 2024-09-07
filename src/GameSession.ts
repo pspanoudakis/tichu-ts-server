@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import { GameClient } from "./GameClient";
 import { JoinGameEvent, CreateRoomEvent } from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
+import { BusinessError } from "./controllers/BusinessError";
 
 export class GameSession {
     readonly id: string;

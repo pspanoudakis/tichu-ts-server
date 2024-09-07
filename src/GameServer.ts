@@ -1,3 +1,4 @@
+import { BusinessError } from "./controllers/BusinessError";
 import { ClientEventType, CreateRoomEvent, JoinGameEvent } from "./events/ClientEvents";
 import { PlayerJoinedEvent, RoomCreatedEvent, ServerEventType } from "./events/ServerEvents";
 import { GameSession } from "./GameSession";
@@ -12,6 +13,7 @@ export class GameServer {
     private sessionIdSeq = 0;
 
     private constructor() {
+        this.express.use(express.json());
         this.express.post('/', (req, res) => {
             // validate...
             GameServer.responseCreator(res, () => 
@@ -30,7 +32,7 @@ export class GameServer {
     }
 
     private generateSessionId() {
-        return String(this.sessionIdSeq++);
+        return `session_${this.sessionIdSeq++}_${new Date().toISOString()}`;
     }
 
     static getInstance() {
@@ -39,7 +41,7 @@ export class GameServer {
 
     static responseCreator(res: ExpressResponse, bodyCreator: () => any) {
         try {
-            res.status(200).send(bodyCreator());
+            res.status(200).json(bodyCreator());
         } catch (err) {
             if (err instanceof BusinessError)
                 res.status(400);
@@ -59,9 +61,9 @@ export class GameServer {
         // Create new session
         const sessionId = this.generateSessionId();
         const session = new GameSession(this.express, sessionId, e);
-        this.sessions.set(
-            `session_${sessionId}_${new Date().toISOString()}`, session
-        );
+        if (this.sessions.has(sessionId))
+            throw new Error(`Regenerated existing session id: '${sessionId}'`);
+        this.sessions.set(sessionId, session);
         // Add player in session
         const outEvt = this.handleJoinGameEvent({
             eventType: ClientEventType.JOIN_GAME,
@@ -85,16 +87,15 @@ export class GameServer {
             throw new BusinessError(
                 `Session: '${e.data.sessionId}' does not exist.`
             );
-        session.addPlayerOrElseThrow(e);
 
-        // broadcast join in other players
         const evt: PlayerJoinedEvent = {
             eventType: ServerEventType.PLAYER_JOINED,
-            playerKey: e.playerKey,
+            playerKey: session.addPlayerOrElseThrow(e),
             data: {
                 playerNickname: e.data.playerNickname
             }
         };
+        // broadcast join in other players
 
         return evt;
     }
