@@ -26,7 +26,6 @@ type SessionClientEvent<T, D = undefined> = GameEvent<
 export type CreateRoomEvent = GameEvent<
     ClientEventType.CREATE_ROOM, {
         winningScore: number,
-        playerNickname: string,
     }
 >;
 

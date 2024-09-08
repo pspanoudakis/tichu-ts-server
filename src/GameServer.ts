@@ -1,7 +1,7 @@
 import http from "http";
 import { Server } from "socket.io";
 import { BusinessError } from "./responses/BusinessError";
-import { ClientEventType, CreateRoomEvent, JoinGameEvent } from "./events/ClientEvents";
+import { CreateRoomEvent } from "./events/ClientEvents";
 import { GameSession } from "./GameSession";
 import express, { Response as ExpressResponse } from "express";
 import { JoinGameResponse, RoomCreatedResponse } from "./responses/ServerResponses";
@@ -11,6 +11,7 @@ export class GameServer {
     private static instance: GameServer | null = null;
 
     express = express();
+    httpServer: http.Server;
     socketServer: Server;
     sessions = new Map<string, GameSession>();
     private sessionIdSeq = 0;
@@ -32,8 +33,9 @@ export class GameServer {
         this.express.get('/', (req, res) => {
             res.send('Hello from Node TS!');
         });
+        this.httpServer = http.createServer(this.express);
         this.socketServer = new Server(
-            http.createServer(express) , {
+            this.httpServer, {
                 cors: {
                     origin: '*'
                 }
@@ -42,7 +44,8 @@ export class GameServer {
     }
 
     private generateSessionId() {
-        return `session_${this.sessionIdSeq++}_${new Date().toISOString()}`;
+        // return `session_${this.sessionIdSeq++}_${new Date().toISOString()}`;
+        return `session_${this.sessionIdSeq++}`;
     }
 
     static getInstance() {
@@ -62,7 +65,7 @@ export class GameServer {
     }
 
     listen(port: number) {
-        this.express.listen(port, () => {
+        this.httpServer.listen(port, () => {
             console.info(`Node.js TS server running on port [${port}]`);
         });
     }

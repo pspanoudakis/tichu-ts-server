@@ -4,6 +4,10 @@ import { JoinGameEvent, CreateRoomEvent, ClientEventType } from "./events/Client
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
 import { PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, WaitingForJoinEvent } from "./events/ServerEvents";
 
+type EventBase = {
+    eventType: string
+};
+
 export class GameSession {
     readonly id: string;
 
@@ -25,8 +29,7 @@ export class GameSession {
         this.sessionNamespace.use((_, next) => {
             // Maybe add auth here
             next();
-        });
-        this.sessionNamespace.on('connection', (socket) => {
+        }).on('connection', (socket) => {
             for (const key of PLAYER_KEYS) {
                 if (this.clients[key] === null) {
                     this.clients[key] = {
@@ -77,24 +80,24 @@ export class GameSession {
         })
     }
 
-    private emitEventByKey<T extends {eventType: string}>
+    private emitEventByKey<T extends EventBase>
     (playerKey: PlayerKey, event: T) {
         this.sessionNamespace.sockets.get(playerKey)
             ?.emit(event.eventType, event);
     }
     
-    private emitEvent<T extends {eventType: string}>
+    private emitEvent<T extends EventBase>
     (socket: Socket, event: T) {
         socket.emit(event.eventType, event);
     }
 
-    private broadcastEventByKey<T extends {eventType: string}>
+    private broadcastEventByKey<T extends EventBase>
     (playerKeyToExclude: PlayerKey, event: T) {
         this.sessionNamespace.sockets.get(playerKeyToExclude)
             ?.broadcast.emit(event.eventType, event);
     }
     
-    private broadcastEvent<T extends {eventType: string}>
+    private broadcastEvent<T extends EventBase>
     (socketToExclude: Socket, event: T) {
         socketToExclude.broadcast.emit(event.eventType, event);
     }
