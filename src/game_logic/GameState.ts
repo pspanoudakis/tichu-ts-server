@@ -39,6 +39,7 @@ export class GameState {
     team13TotalPoints = 0;
     winningScore: number;
     gameOver = false;
+    status: 'INIT' | 'IN_PROGRESS' | 'OVER' = 'INIT';
     currentGameboardState = new GameboardState();
 
     constructor(winningScore: number = 1) {

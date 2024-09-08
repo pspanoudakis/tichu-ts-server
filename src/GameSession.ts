@@ -1,9 +1,8 @@
-import { Namespace, Server } from "socket.io";
+import { Namespace, Server, Socket } from "socket.io";
 import { GameClient } from "./GameClient";
-import { JoinGameEvent, CreateRoomEvent } from "./events/ClientEvents";
+import { JoinGameEvent, CreateRoomEvent, ClientEventType } from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
-import { BusinessError } from "./responses/BusinessError";
-import { PlayerJoinedEvent, ServerEventType } from "./events/ServerEvents";
+import { PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, WaitingForJoinEvent } from "./events/ServerEvents";
 
 export class GameSession {
     readonly id: string;
@@ -27,28 +26,80 @@ export class GameSession {
             // Maybe add auth here
             next();
         });
+        this.sessionNamespace.on('connection', (socket) => {
+            for (const key of PLAYER_KEYS) {
+                if (this.clients[key] === null) {
+                    this.clients[key] = {
+                        playerKey: key,
+                        socketId: socket.id,
+                        nickname: '',
+                    }
+                    socket.on('disconnect', (reason) => {
+                        console.warn(`Player: '${key}' disconnected: ${reason}`);
+                        switch (this.gameState.status) {
+                            case 'IN_PROGRESS':
+                                // End game due to disconnection
+                                break;
+                            case 'INIT':
+                                this.broadcastEvent<PlayerLeftEvent>(socket, {
+                                    eventType: ServerEventType.PLAYER_LEFT,
+                                    playerKey: key,
+                                    data: undefined,
+                                });
+                            default:
+                                break;
+                        }
+                    });
+                    this.emitEvent<WaitingForJoinEvent>(socket, {
+                        eventType: ServerEventType.WAITING_4_JOIN,
+                        playerKey: key,
+                        data: undefined,
+                    });
+                    return;
+                }
+            }
+            // Session full, reject connection
+            socket.disconnect();
+        }).on(ClientEventType.JOIN_GAME, (e: JoinGameEvent) => {
+            if (!e.playerKey) return;
+            const client = this.clients[e.playerKey]
+            if (!client) return;
+            client.nickname = e.data.playerNickname;
+            this.broadcastEventByKey<PlayerJoinedEvent>(
+                client.playerKey, {
+                    eventType: ServerEventType.PLAYER_JOINED,
+                    playerKey: client.playerKey,
+                    data: {
+                        playerNickname: client.nickname,
+                    }
+                }
+            );
+        })
     }
 
-    private broadcastEvent<T extends {eventType: string}>
+    private emitEventByKey<T extends {eventType: string}>
+    (playerKey: PlayerKey, event: T) {
+        this.sessionNamespace.sockets.get(playerKey)
+            ?.emit(event.eventType, event);
+    }
+    
+    private emitEvent<T extends {eventType: string}>
+    (socket: Socket, event: T) {
+        socket.emit(event.eventType, event);
+    }
+
+    private broadcastEventByKey<T extends {eventType: string}>
     (playerKeyToExclude: PlayerKey, event: T) {
         this.sessionNamespace.sockets.get(playerKeyToExclude)
             ?.broadcast.emit(event.eventType, event);
     }
+    
+    private broadcastEvent<T extends {eventType: string}>
+    (socketToExclude: Socket, event: T) {
+        socketToExclude.broadcast.emit(event.eventType, event);
+    }
 
-    addPlayerOrElseThrow(e: JoinGameEvent) {
-        for (const key of PLAYER_KEYS) {
-            if (this.clients[key] === null) {
-                this.clients[key] = new GameClient(key, e.data.playerNickname);
-                this.broadcastEvent<PlayerJoinedEvent>(key, {
-                    eventType: ServerEventType.PLAYER_JOINED,
-                    playerKey: key,
-                    data: {
-                        playerNickname: e.data.playerNickname
-                    }
-                })
-                return key;
-            }
-        }
-        throw new BusinessError(`Session is full.`);
+    isFull() {
+        return PLAYER_KEYS.every(key => this.clients[key] !== null);
     }
 }

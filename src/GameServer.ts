@@ -26,7 +26,7 @@ export class GameServer {
         this.express.post('/join', (req, res) => {
             // validate...
             GameServer.responseCreator(res, () => 
-                this.handleJoinGameEvent(req.body as JoinGameEvent)
+                this.handleJoinGameEvent()
             );
         });
         this.express.get('/', (req, res) => {
@@ -74,35 +74,22 @@ export class GameServer {
         if (this.sessions.has(sessionId))
             throw new Error(`Regenerated existing session id: '${sessionId}'`);
         this.sessions.set(sessionId, session);
-        // Add player in session
-        const outEvt = this.handleJoinGameEvent({
-            eventType: ClientEventType.JOIN_GAME,
-            data: {
-                sessionId,
-                playerNickname: e.data.playerNickname
-            }
-        });
+        // Player will be added in session as soon as socket connection is established.
         return {
-            playerKey: outEvt.playerKey,
             sessionId,
         };
     }
 
-    handleJoinGameEvent(e: JoinGameEvent): JoinGameResponse {
-        const session = this.sessions.get(e.data.sessionId);
-        if (!session) 
-            throw new BusinessError(
-                `Session: '${e.data.sessionId}' does not exist.`
-            );
-
-        return {
-            playerKey: session.addPlayerOrElseThrow(e),
-            playerNicknames: {
-                player1: session.clients.player1?.nickname,
-                player2: session.clients.player2?.nickname,
-                player3: session.clients.player3?.nickname,
-                player4: session.clients.player4?.nickname,
+    handleJoinGameEvent(): JoinGameResponse {
+        for (const session of this.sessions.values()) {
+            if (!session.isFull()) {
+                return {
+                    sessionId: session.id,
+                };
             }
-        };
+        }
+        throw new BusinessError(
+            `No sessions that can be joined were found.`
+        );
     }
 }

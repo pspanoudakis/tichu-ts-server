@@ -5,6 +5,7 @@ import { GameWinnerResult } from "../game_logic/GameWinnerResult";
 import { PlayerKey, RoundScore } from "../game_logic/GameState";
 
 export enum ServerEventType {
+    WAITING_4_JOIN = 'WAITING_4_JOIN',
     ROOM_CREATED = 'ROOM_CREATED',
     PLAYER_JOINED = 'PLAYER_JOINED',
     PLAYER_LEFT = 'PLAYER_LEFT',
@@ -23,6 +24,8 @@ export enum ServerEventType {
     GAME_ROUND_ENDED = 'GAME_ROUND_ENDED',
     GAME_ENDED = 'GAME_ENDED',
 };
+
+export type WaitingForJoinEvent = GameEvent<ServerEventType.WAITING_4_JOIN>;
 
 export type PlayerJoinedEvent = GameEvent<
     ServerEventType.PLAYER_JOINED,
