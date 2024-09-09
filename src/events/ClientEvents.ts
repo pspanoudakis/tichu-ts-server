@@ -59,6 +59,8 @@ export type GiveDragonEvent = SessionClientEvent<
     }
 >;
 
+export type RevealAllCardsEvent = SessionClientEvent<ClientEventType.REVEAL_ALL_CARDS>;
+
 export type PlaceBetEvent = SessionClientEvent<
     ClientEventType.PLACE_BET, {
         betPoints: GameBet.TICHU | GameBet.GRAND_TICHU
