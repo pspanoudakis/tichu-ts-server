@@ -1,8 +1,8 @@
 import { Namespace, Server, Socket } from "socket.io";
 import { GameClient } from "./GameClient";
-import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent } from "./events/ClientEvents";
+import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent } from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
-import { AllCardsRevealedEvent, BetPlacedEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, WaitingForJoinEvent } from "./events/ServerEvents";
+import { AllCardsRevealedEvent, BetPlacedEvent, CardsTradedEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
 import { CardInfo } from "./game_logic/CardInfo";
 
 type EventBase = {
@@ -108,7 +108,30 @@ export class GameSession {
                     )
                 }
             });
-        });
+        }).on(ClientEventType.TRADE_CARDS, (e: TradeCardsEvent) => {
+            // Validate:
+            if (!e.playerKey) return;
+            // Can trade at all?
+            // Check game phase
+            // Do not allow new trade
+            if (this.gameState.currentGameboardState.playerTrades[e.playerKey]) {
+                return;
+            }
+            // Store trade...
+            if (PLAYER_KEYS.every(key => this.gameState.currentGameboardState.playerTrades[key]?.length)) {
+                this.onAllTradesCompleted();
+            }
+        }).on(ClientEventType.RECEIVE_TRADE, (e: ReceiveTradeEvent) => {
+            // Validate:
+            if (!e.playerKey) return;
+            // Can receive at all?
+            // Update...
+            
+            if (++this.gameState.currentGameboardState.receivedTrades === PLAYER_KEYS.length) {
+                this.onAllTradesReceived();
+            }
+
+        })
     }
 
     private static mapCardsToKeys(cards: CardInfo[]) {
@@ -148,9 +171,31 @@ export class GameSession {
                 data: {
                     partialCards: this.gameState.currentGameboardState.playerHands[key]
                         .map(c => c.key).slice(0, 8)
-                }
+                },
             });
         }
+    }
+
+    private onAllTradesCompleted() {
+        for (const key of PLAYER_KEYS) {
+            this.emitEventByKey<CardsTradedEvent>(key, {
+                eventType: ServerEventType.CARDS_TRADED,
+                data: {
+                    cardByTeammate: '',
+                    cardByLeft: '',
+                    cardByRight: '',
+                },
+            })
+        }
+    }
+
+    private onAllTradesReceived() {
+        this.emitToNamespace<TableRoundStartedEvent>({
+            eventType: ServerEventType.TABLE_ROUND_STARTED,
+            data: {
+                currentPlayer: PLAYER_KEYS[this.gameState.currentGameboardState.currentPlayerIndex]
+            }
+        })
     }
 
     isFull() {
