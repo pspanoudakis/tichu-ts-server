@@ -4,6 +4,7 @@ import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealA
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
 import { AllCardsRevealedEvent, BetPlacedEvent, BusinessErrorEvent, CardsTradedEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
 import { CardInfo } from "./game_logic/CardInfo";
+import { BusinessError } from "./responses/BusinessError";
 
 type EventBase = {
     eventType: string
@@ -31,6 +32,7 @@ export class GameSession {
             // Maybe add auth here
             next();
         }).on('connection', (socket) => {
+            if(socket.recovered) return;
             for (const key of PLAYER_KEYS) {
                 if (this.clients[key] === null) {
                     this.clients[key] = {
@@ -84,7 +86,6 @@ export class GameSession {
             }
         })).on(ClientEventType.PLACE_BET, this.eventHandlerWrapper((e: PlaceBetEvent) => {
             // Validate:
-            if (!e.playerKey) return;
             // Can bet at all?
             // Can bet grand tichu?
             this.gameState.currentGameboardState.playerBets[e.playerKey] = e.data.betPoints;
@@ -97,7 +98,6 @@ export class GameSession {
             })
         })).on(ClientEventType.REVEAL_ALL_CARDS, this.eventHandlerWrapper((e: RevealAllCardsEvent) => {
             // Validate:
-            if (!e.playerKey) return;
             // Can reveal at all?
             this.emitEventByKey<AllCardsRevealedEvent>(e.playerKey, {
                 eventType: ServerEventType.ALL_CARDS_REVEALED,
@@ -107,22 +107,20 @@ export class GameSession {
                     )
                 }
             });
-        })).on(ClientEventType.TRADE_CARDS, (e: TradeCardsEvent) => {
+        })).on(ClientEventType.TRADE_CARDS, this.eventHandlerWrapper((e: TradeCardsEvent) => {
             // Validate:
-            if (!e.playerKey) return;
             // Can trade at all?
             // Check game phase
             // Do not allow new trade
             if (this.gameState.currentGameboardState.playerTrades[e.playerKey]) {
-                return;
+                throw new BusinessError('Trades by this player have already been registered.');
             }
             // Store trade...
-            if (PLAYER_KEYS.every(key => this.gameState.currentGameboardState.playerTrades[key]?.length)) {
+            if (++this.gameState.currentGameboardState.sentTrades === PLAYER_KEYS.length) {
                 this.onAllTradesCompleted();
             }
-        }).on(ClientEventType.RECEIVE_TRADE, this.eventHandlerWrapper((e: ReceiveTradeEvent) => {
+        })).on(ClientEventType.RECEIVE_TRADE, this.eventHandlerWrapper((e: ReceiveTradeEvent) => {
             // Validate:
-            if (!e.playerKey) return;
             // Can receive at all?
             // Update...
             
