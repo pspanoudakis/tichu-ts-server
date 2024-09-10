@@ -1,5 +1,5 @@
 import { CardKey, CardName, GameEvent } from "./GameEvent";
-import { GameBet } from "../game_logic/GameboardState";
+import { GameBet } from "../game_logic/GameRoundState";
 import { CardCombinationType } from "../game_logic/CardCombinations";
 import { GameWinnerResult } from "../game_logic/GameWinnerResult";
 import { PlayerKey, RoundScore } from "../game_logic/GameState";
@@ -23,6 +23,7 @@ export enum ServerEventType {
     GAME_ROUND_STARTED = 'GAME_ROUND_STARTED',
     GAME_ROUND_ENDED = 'GAME_ROUND_ENDED',
     GAME_ENDED = 'GAME_ENDED',
+    BUSINESS_ERROR = 'BUSINESS_ERROR',
 };
 
 export type WaitingForJoinEvent = GameEvent<ServerEventType.WAITING_4_JOIN>;
@@ -115,4 +116,8 @@ export type GameEndedEvent = GameEvent<
     ServerEventType.GAME_ENDED, {
         result: GameWinnerResult,
     }
+>;
+
+export type BusinessErrorEvent = GameEvent<
+    ServerEventType.BUSINESS_ERROR, any
 >;

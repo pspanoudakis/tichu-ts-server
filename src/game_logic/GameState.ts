@@ -1,4 +1,4 @@
-import { GameboardState } from "./GameboardState";
+import { GameRoundState } from "./GameRoundState"; 
 
 const _PLAYER_KEYS = {
     PLAYER1: 'player1',
@@ -40,7 +40,7 @@ export class GameState {
     winningScore: number;
     gameOver = false;
     status: 'INIT' | 'IN_PROGRESS' | 'OVER' = 'INIT';
-    currentGameboardState = new GameboardState();
+    currentGameboardState = new GameRoundState();
 
     constructor(winningScore: number = 1) {
         this.winningScore = winningScore;

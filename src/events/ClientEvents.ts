@@ -1,4 +1,4 @@
-import { GameBet } from "../game_logic/GameboardState";
+import { GameBet, GameRoundState } from "../game_logic/GameRoundState";
 import { PlayerKey } from "../game_logic/GameState";
 import { CardKey, CardName, GameEvent } from "./GameEvent";
 
@@ -17,11 +17,13 @@ export enum ClientEventType {
     SEND_MESSAGE = 'SEND_MESSAGE',
 };
 
-type SessionClientEvent<T, D = undefined> = GameEvent<
-    T, D & {
-        sessionId: string,
-    }
->
+export type SessionClientEvent<T, D = undefined> = 
+    { playerKey: PlayerKey } &
+    GameEvent<
+        T, D & {
+            sessionId: string,
+        }
+    >
 
 export type CreateRoomEvent = GameEvent<
     ClientEventType.CREATE_ROOM, {
@@ -43,13 +45,21 @@ export type PlayCardsEvent = SessionClientEvent<
 
 export type PassTurnEvent = SessionClientEvent<ClientEventType.PASS_TURN>;
 
-export type TradeCardsEvent = GameEvent<
+export type TradeCardsEvent = SessionClientEvent<
     ClientEventType.TRADE_CARDS, {
         teammateCardKey: CardKey,
         leftCardKey: CardKey,
         rightCardKey: CardKey,
     }
 >;
+
+// function validateTradeCardsEvent(e: TradeCardsEvent, grs: GameRoundState) {
+//     if (Object.values(e.data).some(
+//         key => !grs.playerHands[e.playerKey].find(card => card.key === key)
+//     )) {
+//         throw new BusinessError('Attempted to trade not owned card.');
+//     }
+// }
 
 export type ReceiveTradeEvent = SessionClientEvent<ClientEventType.RECEIVE_TRADE>;
 

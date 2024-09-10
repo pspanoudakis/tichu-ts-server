@@ -1,8 +1,8 @@
 import { Namespace, Server, Socket } from "socket.io";
 import { GameClient } from "./GameClient";
-import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent } from "./events/ClientEvents";
+import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent, SessionClientEvent } from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
-import { AllCardsRevealedEvent, BetPlacedEvent, CardsTradedEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
+import { AllCardsRevealedEvent, BetPlacedEvent, BusinessErrorEvent, CardsTradedEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
 import { CardInfo } from "./game_logic/CardInfo";
 
 type EventBase = {
@@ -35,7 +35,6 @@ export class GameSession {
                 if (this.clients[key] === null) {
                     this.clients[key] = {
                         playerKey: key,
-                        socketId: socket.id,
                         nickname: '',
                         connected: false,
                     }
@@ -55,7 +54,7 @@ export class GameSession {
                                 break;
                         }
                     });
-                    this.emitEvent<WaitingForJoinEvent>(socket, {
+                    GameSession.emitEvent<WaitingForJoinEvent>(socket, {
                         eventType: ServerEventType.WAITING_4_JOIN,
                         playerKey: key,
                         data: undefined,
@@ -65,7 +64,7 @@ export class GameSession {
             }
             // Session full, reject connection
             socket.disconnect(true);
-        }).on(ClientEventType.JOIN_GAME, (e: JoinGameEvent) => {
+        }).on(ClientEventType.JOIN_GAME, this.eventHandlerWrapper((e: JoinGameEvent) => {
             if (!e.playerKey) return;
             const client = this.clients[e.playerKey]
             if (!client) return;
@@ -83,7 +82,7 @@ export class GameSession {
             if (PLAYER_KEYS.every(key => this.clients[key]?.connected)) {
                 this.startGame();
             }
-        }).on(ClientEventType.PLACE_BET, (e: PlaceBetEvent) => {
+        })).on(ClientEventType.PLACE_BET, this.eventHandlerWrapper((e: PlaceBetEvent) => {
             // Validate:
             if (!e.playerKey) return;
             // Can bet at all?
@@ -96,7 +95,7 @@ export class GameSession {
                     betPoints: e.data.betPoints
                 }
             })
-        }).on(ClientEventType.REVEAL_ALL_CARDS, (e: RevealAllCardsEvent) => {
+        })).on(ClientEventType.REVEAL_ALL_CARDS, this.eventHandlerWrapper((e: RevealAllCardsEvent) => {
             // Validate:
             if (!e.playerKey) return;
             // Can reveal at all?
@@ -108,7 +107,7 @@ export class GameSession {
                     )
                 }
             });
-        }).on(ClientEventType.TRADE_CARDS, (e: TradeCardsEvent) => {
+        })).on(ClientEventType.TRADE_CARDS, (e: TradeCardsEvent) => {
             // Validate:
             if (!e.playerKey) return;
             // Can trade at all?
@@ -121,7 +120,7 @@ export class GameSession {
             if (PLAYER_KEYS.every(key => this.gameState.currentGameboardState.playerTrades[key]?.length)) {
                 this.onAllTradesCompleted();
             }
-        }).on(ClientEventType.RECEIVE_TRADE, (e: ReceiveTradeEvent) => {
+        }).on(ClientEventType.RECEIVE_TRADE, this.eventHandlerWrapper((e: ReceiveTradeEvent) => {
             // Validate:
             if (!e.playerKey) return;
             // Can receive at all?
@@ -131,7 +130,20 @@ export class GameSession {
                 this.onAllTradesReceived();
             }
 
-        })
+        }))
+    }
+
+    private eventHandlerWrapper<T>(f: (e: SessionClientEvent<T>) => void) {
+        return (event: SessionClientEvent<T>) => {
+            try {
+                f(event);
+            } catch (error) {
+                this.emitEventByKey<BusinessErrorEvent>(event.playerKey, {
+                    eventType: ServerEventType.BUSINESS_ERROR,
+                    data: error,
+                });
+            }
+        };
     }
 
     private static mapCardsToKeys(cards: CardInfo[]) {
@@ -148,7 +160,7 @@ export class GameSession {
             ?.emit(e.eventType, event);
     }
     
-    private emitEvent<T extends EventBase>
+    private static emitEvent<T extends EventBase>
     (socket: Socket, e: T) {
         socket.emit(e.eventType, event);
     }

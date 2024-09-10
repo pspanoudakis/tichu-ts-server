@@ -40,7 +40,7 @@ class TableState {
     }
 }
 
-export class GameboardState {
+export class GameRoundState {
     deck = new Deck();
     playerHands = new PlayerCards();
     playerHeaps = new PlayerCards();
