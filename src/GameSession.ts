@@ -24,6 +24,8 @@ export class GameSession {
     };
     gameState: GameState;
 
+    expectedEvents = new Set<ClientEventType>([ClientEventType.JOIN_GAME]);
+
     constructor(sessionId: string, socketServer: Server, event: CreateRoomEvent) {
         this.id = sessionId;
         this.gameState = new GameState(event.data.winningScore);
@@ -82,6 +84,7 @@ export class GameSession {
                 }
             );
             if (PLAYER_KEYS.every(key => this.clients[key]?.connected)) {
+                this.setExpectedEvents(ClientEventType.PLACE_BET, ClientEventType.REVEAL_ALL_CARDS);
                 this.startGame();
             }
         })).on(ClientEventType.PLACE_BET, this.eventHandlerWrapper((e: PlaceBetEvent) => {
@@ -104,7 +107,7 @@ export class GameSession {
                 data: {
                     cards: GameSession.mapCardsToKeys(
                         this.gameState.currentGameboardState.playerHands[e.playerKey]
-                    )
+                    ),
                 }
             });
         })).on(ClientEventType.TRADE_CARDS, this.eventHandlerWrapper((e: TradeCardsEvent) => {
@@ -117,6 +120,7 @@ export class GameSession {
             }
             // Store trade...
             if (++this.gameState.currentGameboardState.sentTrades === PLAYER_KEYS.length) {
+                this.setExpectedEvents(ClientEventType.RECEIVE_TRADE);
                 this.onAllTradesCompleted();
             }
         })).on(ClientEventType.RECEIVE_TRADE, this.eventHandlerWrapper((e: ReceiveTradeEvent) => {
@@ -131,9 +135,11 @@ export class GameSession {
         }))
     }
 
-    private eventHandlerWrapper<T>(f: (e: SessionClientEvent<T>) => void) {
+    private eventHandlerWrapper<T extends ClientEventType>(f: (e: SessionClientEvent<T>) => void) {
         return (event: SessionClientEvent<T>) => {
             try {
+                if (!this.expectedEvents.has(event.eventType))
+                    throw new BusinessError(`Unexpected Event '${event.eventType}'`);
                 f(event);
             } catch (error) {
                 this.emitEventByKey<BusinessErrorEvent>(event.playerKey, {
@@ -206,6 +212,11 @@ export class GameSession {
                 currentPlayer: PLAYER_KEYS[this.gameState.currentGameboardState.currentPlayerIndex]
             }
         })
+    }
+
+    private setExpectedEvents(...eventTypes: ClientEventType[]) {
+        this.expectedEvents = new Set(eventTypes);
+        return this.expectedEvents;
     }
 
     isFull() {

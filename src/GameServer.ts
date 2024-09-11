@@ -38,7 +38,11 @@ export class GameServer {
             this.httpServer, {
                 cors: {
                     origin: '*'
-                }
+                },
+                connectionStateRecovery: {
+                    maxDisconnectionDuration: 1 * 60 * 1000,
+                    skipMiddlewares: true,
+                },
             }
         );
     }
