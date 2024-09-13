@@ -1,0 +1,5 @@
+services:
+  tichu-ts-server:
+    build:
+      target: production
+    command: node dist/index.js

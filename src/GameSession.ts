@@ -155,29 +155,29 @@ export class GameSession {
     }
 
     private emitToNamespace<T extends EventBase>(e: T) {
-        this.sessionNamespace.emit(e.eventType, event);
+        this.sessionNamespace.emit(e.eventType, e);
     }
 
     private emitEventByKey<T extends EventBase>
     (playerKey: PlayerKey, e: T) {
         this.sessionNamespace.sockets.get(playerKey)
-            ?.emit(e.eventType, event);
+            ?.emit(e.eventType, e);
     }
     
     private static emitEvent<T extends EventBase>
     (socket: Socket, e: T) {
-        socket.emit(e.eventType, event);
+        socket.emit(e.eventType, e);
     }
 
     private broadcastEventByKey<T extends EventBase>
     (playerKeyToExclude: PlayerKey, e: T) {
         this.sessionNamespace.sockets.get(playerKeyToExclude)
-            ?.broadcast.emit(e.eventType, event);
+            ?.broadcast.emit(e.eventType, e);
     }
     
     private broadcastEvent<T extends EventBase>
     (socketToExclude: Socket, e: T) {
-        socketToExclude.broadcast.emit(e.eventType, event);
+        socketToExclude.broadcast.emit(e.eventType, e);
     }
 
     private startGame() {
