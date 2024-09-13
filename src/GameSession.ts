@@ -5,15 +5,25 @@ import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
 import { AllCardsRevealedEvent, BetPlacedEvent, BusinessErrorEvent, CardsTradedEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
 import { CardInfo } from "./game_logic/CardInfo";
 import { BusinessError } from "./responses/BusinessError";
+import { DefaultEventsMap } from "socket.io/dist/typed-events";
 
 type EventBase = {
     eventType: string
 };
 
+interface CustomSocketData {
+    playerKey?: PlayerKey;
+};
+
 export class GameSession {
     readonly id: string;
 
-    sessionNamespace: Namespace;
+    sessionNamespace: Namespace<
+        DefaultEventsMap,
+        DefaultEventsMap,
+        DefaultEventsMap,
+        CustomSocketData
+    >;
     clients: {
         [playerKey in PlayerKey]: GameClient | null;
     } = {
@@ -35,104 +45,98 @@ export class GameSession {
             next();
         }).on('connection', (socket) => {
             if(socket.recovered) return;
-            for (const key of PLAYER_KEYS) {
-                if (this.clients[key] === null) {
-                    this.clients[key] = {
-                        playerKey: key,
-                        nickname: '',
-                        connected: false,
+            const playerKey = PLAYER_KEYS.find(key => this.clients[key] === null);
+            if (!playerKey) {
+                // Session full, reject connection
+                socket.disconnect(true);
+                return;
+            }
+            this.clients[playerKey] = {
+                playerKey: playerKey,
+                nickname: '',
+                connected: false,
+            }
+            socket.data.playerKey = playerKey;
+            socket.on('disconnect', (reason) => {
+                console.warn(`Player: '${playerKey}' disconnected: ${reason}`);
+                switch (this.gameState.status) {
+                    case 'IN_PROGRESS':
+                        // End game due to disconnection
+                        break;
+                    case 'INIT':
+                        GameSession.broadcastEvent<PlayerLeftEvent>(socket, {
+                            eventType: ServerEventType.PLAYER_LEFT,
+                            playerKey: playerKey,
+                            data: undefined,
+                        });
+                    default:
+                        break;
+                }
+            }).on(ClientEventType.JOIN_GAME,
+                this.eventHandlerWrapper((e: JoinGameEvent) => {
+                    const client = this.clients[playerKey];
+                    if (!client) return;
+                    client.nickname = e.data.playerNickname;
+                    client.connected = true;
+                    GameSession.broadcastEvent<PlayerJoinedEvent>(
+                        socket, {
+                            eventType: ServerEventType.PLAYER_JOINED,
+                            playerKey: playerKey,
+                            data: {
+                                playerNickname: client.nickname,
+                            }
+                        }
+                    );
+                    if (PLAYER_KEYS.every(k => this.clients[k]?.connected)) {
+                        this.startGame();
                     }
-                    socket.on('disconnect', (reason) => {
-                        console.warn(`Player: '${key}' disconnected: ${reason}`);
-                        switch (this.gameState.status) {
-                            case 'IN_PROGRESS':
-                                // End game due to disconnection
-                                break;
-                            case 'INIT':
-                                this.broadcastEvent<PlayerLeftEvent>(socket, {
-                                    eventType: ServerEventType.PLAYER_LEFT,
-                                    playerKey: key,
-                                    data: undefined,
-                                });
-                            default:
-                                break;
+                })
+            ).on(ClientEventType.PLACE_BET,
+                this.eventHandlerWrapper((e: PlaceBetEvent) => {
+                    // Do action...
+                    GameSession.broadcastEvent<BetPlacedEvent>(socket, {
+                        eventType: ServerEventType.BET_PLACED,
+                        playerKey: playerKey,
+                        data: {
+                            betPoints: e.data.betPoints
+                        }
+                    })
+                }
+            )).on(ClientEventType.REVEAL_ALL_CARDS,
+                this.eventHandlerWrapper((e: RevealAllCardsEvent) => {
+                    // Do action...
+                    GameSession.emitEvent<AllCardsRevealedEvent>(socket, {
+                        eventType: ServerEventType.ALL_CARDS_REVEALED,
+                        data: {
+                            cards: GameSession.mapCardsToKeys(
+                                this.gameState.currentGameboardState.playerHands[playerKey]
+                            ),
                         }
                     });
-                    GameSession.emitEvent<WaitingForJoinEvent>(socket, {
-                        eventType: ServerEventType.WAITING_4_JOIN,
-                        playerKey: key,
-                        data: undefined,
-                    });
-                    return;
                 }
-            }
-            // Session full, reject connection
-            socket.disconnect(true);
-        }).on(ClientEventType.JOIN_GAME, this.eventHandlerWrapper((e: JoinGameEvent) => {
-            if (!e.playerKey) return;
-            const client = this.clients[e.playerKey]
-            if (!client) return;
-            client.nickname = e.data.playerNickname;
-            client.connected = true;
-            this.broadcastEventByKey<PlayerJoinedEvent>(
-                client.playerKey, {
-                    eventType: ServerEventType.PLAYER_JOINED,
-                    playerKey: client.playerKey,
-                    data: {
-                        playerNickname: client.nickname,
+            )).on(ClientEventType.TRADE_CARDS,
+                this.eventHandlerWrapper((e: TradeCardsEvent) => {
+                    // Do action...
+                    if (++this.gameState.currentGameboardState.sentTrades === PLAYER_KEYS.length) {
+                        this.setExpectedEvents(ClientEventType.RECEIVE_TRADE);
+                        this.onAllTradesCompleted();
                     }
                 }
-            );
-            if (PLAYER_KEYS.every(key => this.clients[key]?.connected)) {
-                this.setExpectedEvents(ClientEventType.PLACE_BET, ClientEventType.REVEAL_ALL_CARDS);
-                this.startGame();
-            }
-        })).on(ClientEventType.PLACE_BET, this.eventHandlerWrapper((e: PlaceBetEvent) => {
-            // Validate:
-            // Can bet at all?
-            // Can bet grand tichu?
-            this.gameState.currentGameboardState.playerBets[e.playerKey] = e.data.betPoints;
-            this.broadcastEventByKey<BetPlacedEvent>(e.playerKey, {
-                eventType: ServerEventType.BET_PLACED,
-                playerKey: e.playerKey,
-                data: {
-                    betPoints: e.data.betPoints
+            )).on(ClientEventType.RECEIVE_TRADE,
+                this.eventHandlerWrapper((e: ReceiveTradeEvent) => {
+                    // Do action...
+                    if (++this.gameState.currentGameboardState.receivedTrades === PLAYER_KEYS.length) {
+                        this.onAllTradesReceived();
+                    }
+        
                 }
-            })
-        })).on(ClientEventType.REVEAL_ALL_CARDS, this.eventHandlerWrapper((e: RevealAllCardsEvent) => {
-            // Validate:
-            // Can reveal at all?
-            this.emitEventByKey<AllCardsRevealedEvent>(e.playerKey, {
-                eventType: ServerEventType.ALL_CARDS_REVEALED,
-                data: {
-                    cards: GameSession.mapCardsToKeys(
-                        this.gameState.currentGameboardState.playerHands[e.playerKey]
-                    ),
-                }
+            ))
+            GameSession.emitEvent<WaitingForJoinEvent>(socket, {
+                eventType: ServerEventType.WAITING_4_JOIN,
+                playerKey: playerKey,
+                data: undefined,
             });
-        })).on(ClientEventType.TRADE_CARDS, this.eventHandlerWrapper((e: TradeCardsEvent) => {
-            // Validate:
-            // Can trade at all?
-            // Check game phase
-            // Do not allow new trade
-            if (this.gameState.currentGameboardState.playerTrades[e.playerKey]) {
-                throw new BusinessError('Trades by this player have already been registered.');
-            }
-            // Store trade...
-            if (++this.gameState.currentGameboardState.sentTrades === PLAYER_KEYS.length) {
-                this.setExpectedEvents(ClientEventType.RECEIVE_TRADE);
-                this.onAllTradesCompleted();
-            }
-        })).on(ClientEventType.RECEIVE_TRADE, this.eventHandlerWrapper((e: ReceiveTradeEvent) => {
-            // Validate:
-            // Can receive at all?
-            // Update...
-            
-            if (++this.gameState.currentGameboardState.receivedTrades === PLAYER_KEYS.length) {
-                this.onAllTradesReceived();
-            }
-
-        }))
+        });
     }
 
     private eventHandlerWrapper<T extends ClientEventType>(f: (e: SessionClientEvent<T>) => void) {
@@ -154,14 +158,20 @@ export class GameSession {
         return cards.map(c => c.key);
     }
 
+    private getSocketByPlayerKey(key: PlayerKey) {
+        for (const s of this.sessionNamespace.sockets.values()) {
+            if (s.data.playerKey === key)
+                return s;
+        }
+    }
+
     private emitToNamespace<T extends EventBase>(e: T) {
         this.sessionNamespace.emit(e.eventType, e);
     }
 
     private emitEventByKey<T extends EventBase>
     (playerKey: PlayerKey, e: T) {
-        this.sessionNamespace.sockets.get(playerKey)
-            ?.emit(e.eventType, e);
+        this.getSocketByPlayerKey(playerKey)?.emit(e.eventType, e);
     }
     
     private static emitEvent<T extends EventBase>
@@ -171,11 +181,11 @@ export class GameSession {
 
     private broadcastEventByKey<T extends EventBase>
     (playerKeyToExclude: PlayerKey, e: T) {
-        this.sessionNamespace.sockets.get(playerKeyToExclude)
+        this.getSocketByPlayerKey(playerKeyToExclude)
             ?.broadcast.emit(e.eventType, e);
     }
     
-    private broadcastEvent<T extends EventBase>
+    private static broadcastEvent<T extends EventBase>
     (socketToExclude: Socket, e: T) {
         socketToExclude.broadcast.emit(e.eventType, e);
     }
