@@ -1,13 +1,13 @@
 import { PlaceBetEvent, TradeCardsEvent } from "../events/ClientEvents";
 import { BusinessError } from "../responses/BusinessError";
-import { CardInfo } from "./CardInfo";
+import { CardInfo, specialCards } from "./CardInfo";
 import { GameBet } from "./GameRoundState";
 
 type PlayerTradeDecision = {
     toTeammate: CardInfo,
     toLeft: CardInfo,
     toRight: CardInfo,
-}
+};
 
 export class PlayerState {
     readonly playerKey: string;
@@ -23,8 +23,16 @@ export class PlayerState {
     constructor(playerKey: string) {
         this.playerKey = playerKey;
     }
+
+    get cards() {
+        return Array.from(this._cards.values());
+    }
     
-    get bet() : GameBet {
+    get heap() : readonly CardInfo[] {
+        return this._heap;
+    }    
+    
+    get bet() {
         return this._bet;
     }
     get hasPlacedBet() {
@@ -38,6 +46,11 @@ export class PlayerState {
     }
     get hasSentTrades() {
         return this._hasSentTrades;
+    }
+
+    private findCard(predicate: (c: CardInfo) => any) {
+        for (const card of this._cards.values())
+            if (predicate(card)) return card;
     }
 
     private findCardByKeyOrElseThrow(key: string) {
@@ -63,7 +76,7 @@ export class PlayerState {
         this._hasPlacedBet = true;
     }
 
-    revealCards() {
+    revealCardsOrElseThrow() {
         if (this._hasRevealedCards)
             throw new BusinessError('Cards have already been revealed.');
         this._hasRevealedCards = true;            
@@ -86,12 +99,29 @@ export class PlayerState {
         this._hasSentTrades = true;
     }
 
-    receiveTrades(cardByTeammate: CardInfo, cardByLeft: CardInfo, cardByRight: CardInfo) {
+    receiveTradesOrElseThrow(cardByTeammate: CardInfo, cardByLeft: CardInfo, cardByRight: CardInfo) {
         if (this._hasReceivedTrades)
             throw new BusinessError('Trades have already been received by this player');
         this._cards.set(cardByTeammate.key, cardByTeammate);
         this._cards.set(cardByLeft.key, cardByLeft);
         this._cards.set(cardByRight.key, cardByRight);
         this._hasReceivedTrades = true;
+    }
+
+    hasMahjong() {
+        return Boolean(this.findCard(c => c.name === specialCards.MAHJONG));
+    }
+
+    getCardsByKeys(cardKeys: string[]) {
+        return cardKeys.map(k => this.findCardByKeyOrElseThrow(k));
+    }
+
+    removeCards(cards: CardInfo[]) {
+        for (const c of cards)
+            this._cards.delete(c.key);
+    }
+
+    addCardsToHeap(cards: CardInfo[]) {
+        this._heap.push(...cards);
     }
 }
