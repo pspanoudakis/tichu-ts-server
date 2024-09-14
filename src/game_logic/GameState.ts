@@ -40,7 +40,7 @@ export class GameState {
     winningScore: number;
     gameOver = false;
     status: 'INIT' | 'IN_PROGRESS' | 'OVER' = 'INIT';
-    currentGameboardState = new GameRoundState();
+    currentGameRoundState = new GameRoundState();
 
     constructor(winningScore: number = 1) {
         this.winningScore = winningScore;
@@ -54,7 +54,7 @@ export class GameState {
         return (
             (
                 this.winningScore === 0 &&
-                this.currentGameboardState.mustEndGameRound()
+                this.currentGameRoundState.mustEndGameRound()
             ) ||
             this.team02TotalPoints >= this.winningScore ||
             this.team13TotalPoints >= this.winningScore

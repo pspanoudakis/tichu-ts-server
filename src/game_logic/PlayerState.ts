@@ -3,7 +3,7 @@ import { BusinessError } from "../responses/BusinessError";
 import { CardInfo, specialCards } from "./CardInfo";
 import { GameBet } from "./GameRoundState";
 
-type PlayerTradeDecision = {
+export type PlayerTradeDecisions = {
     toTeammate: CardInfo,
     toLeft: CardInfo,
     toRight: CardInfo,
@@ -14,7 +14,7 @@ export class PlayerState {
     private _cards = new Map<string, CardInfo>();
     private _heap = Array<CardInfo>();
     private _bet = GameBet.NONE;
-    private _trades?: PlayerTradeDecision;
+    private _trades?: PlayerTradeDecisions;
     private _hasPlacedBet = false;
     private _hasRevealedCards = false;
     private _hasSentTrades = false;
@@ -24,16 +24,22 @@ export class PlayerState {
         this.playerKey = playerKey;
     }
 
-    get cards() {
+    getCards() {
         return Array.from(this._cards.values());
     }
-    
+    getNumCards() {
+        return this._cards.size;
+    }
     get heap() : readonly CardInfo[] {
         return this._heap;
     }    
-    
     get bet() {
         return this._bet;
+    }
+    get trades(): Readonly<PlayerTradeDecisions>{
+        if (!this._trades)
+            throw new BusinessError('This player has not finalized trade decisions.');
+        return this._trades;
     }
     get hasPlacedBet() {
         return this._hasPlacedBet;
@@ -61,6 +67,16 @@ export class PlayerState {
         return card;
     }
 
+    handCards(cards: CardInfo[]) {
+        if (this._cards.size !== 0 || this._hasRevealedCards)
+            throw new BusinessError('This player has already been handed cards.');
+        cards.forEach(c => this._cards.set(c.key, c));
+    }
+
+    getRevealedCards() {
+        return this._hasRevealedCards ? this.getCards() : this.getCards().slice(0, 9);
+    }
+
     placeBetOrElseThrow(e: PlaceBetEvent) {
         if (this._hasPlacedBet)
             throw new BusinessError('This player has already placed a bet.');
@@ -85,9 +101,8 @@ export class PlayerState {
     sendTradesOrElseThrow(e: TradeCardsEvent) {
         if (this._hasSentTrades)
             throw new BusinessError('This player has already send cards for trade.');
-        if (!this._hasRevealedCards) {
+        if (!this._hasRevealedCards)
             throw new BusinessError('Cannot perform trades before revealing cards.');
-        }
         this._trades = {
             toTeammate: this.findCardByKeyOrElseThrow(e.data.teammateCardKey),
             toLeft: this.findCardByKeyOrElseThrow(e.data.leftCardKey),
@@ -117,11 +132,11 @@ export class PlayerState {
     }
 
     removeCards(cards: CardInfo[]) {
-        for (const c of cards)
-            this._cards.delete(c.key);
+        cards.forEach(c => this.findCardByKeyOrElseThrow(c.key));
+        cards.forEach(c => this._cards.delete(c.key));
     }
 
-    addCardsToHeap(cards: CardInfo[]) {
+    addCardsToHeap(...cards: CardInfo[]) {
         this._heap.push(...cards);
     }
 }

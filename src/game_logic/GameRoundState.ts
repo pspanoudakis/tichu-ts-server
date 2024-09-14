@@ -10,6 +10,7 @@ import {
 import { CardInfo, specialCards } from "./CardInfo";
 import { Deck } from "./Deck";
 import { PLAYER_KEYS, PlayerKey, RoundScore } from "./GameState";
+import { PlayerState, PlayerTradeDecisions } from "./PlayerState";
 
 /** Possible player bet points */
 export enum GameBet {
@@ -41,17 +42,13 @@ class TableState {
 }
 
 export class GameRoundState {
+    players: { [playerKey in PlayerKey]: PlayerState } = {
+        player1: new PlayerState('player1'),
+        player2: new PlayerState('player2'),
+        player3: new PlayerState('player3'),
+        player4: new PlayerState('player4')
+    }
     deck = new Deck();
-    playerHands = new PlayerCards();
-    playerHeaps = new PlayerCards();
-    playerTrades: {
-        [playerKey: string]: Array<[string, CardInfo]>
-    } = {};
-    playerBets: {
-        [playerKey: string]: GameBet
-    } = {};
-    sentTrades = 0;
-    receivedTrades = 0;
     tradingPhaseCompleted = false;
     currentPlayerIndex = -1;
     pendingMahjongRequest = '';
@@ -68,15 +65,14 @@ export class GameRoundState {
      * Hands the Deck cards to the players (in round-robin order).
      */
     private handCards() {
-        for (const key of PLAYER_KEYS) {
-            this.playerHands[key] = [];
-        }
+        let playerHands = new PlayerCards();
         let i = 0;
         let card;
         while ((card = this.deck.cards.pop()) !== undefined) {
-            this.playerHands[PLAYER_KEYS[i++]].push(card)
+            playerHands[PLAYER_KEYS[i++]].push(card)
             i %= PLAYER_KEYS.length;
         }
+        PLAYER_KEYS.forEach(k => this.players[k].handCards(playerHands[k]));
     }
 
     /**
@@ -84,29 +80,22 @@ export class GameRoundState {
      * component state accordingly.
      */
     makeCardTrades() {
-        let playerHands: PlayerCards = {
-            player1: [],
-            player2: [],
-            player3: [],
-            player4: [],
+        let playerTrades: { [k in PlayerKey]: PlayerTradeDecisions} = {
+            player1: this.players['player1'].trades,
+            player2: this.players['player2'].trades,
+            player3: this.players['player3'].trades,
+            player4: this.players['player4'].trades,
         };
-        PLAYER_KEYS.forEach((key, index) => {
-            for (const card of this.playerHands[key]) {
-                if (!card.isSelected) {
-                    playerHands[key].push(card);
-                    if (card.name === specialCards.MAHJONG) {
-                        this.currentPlayerIndex = index;
-                    }
-                }
-            }
-            for (const [, card] of this.playerTrades[key]) {
-                playerHands[key].push(card);
-                if (card.name === specialCards.MAHJONG) {
-                    this.currentPlayerIndex = index;
-                }
-            }
-        });
-        this.playerHands = playerHands;
+        for (let i = 0; i < PLAYER_KEYS.length; i++) {
+            const teammateIdx = (i + 2) % PLAYER_KEYS.length;
+            const rightIdx = (i + 1) % PLAYER_KEYS.length;
+            const leftIdx = (i > 0) ? (i - 1) : (PLAYER_KEYS.length - 1);
+            this.players[PLAYER_KEYS[i]].receiveTradesOrElseThrow(
+                playerTrades[PLAYER_KEYS[teammateIdx]].toTeammate,
+                playerTrades[PLAYER_KEYS[leftIdx]].toRight,
+                playerTrades[PLAYER_KEYS[rightIdx]].toLeft,
+            )
+        }
     }
 
     /**
@@ -257,71 +246,68 @@ export class GameRoundState {
      * @param selectedCardKeys The keys of the cards selected by the player.
      */
     playCards(playerKey: PlayerKey, selectedCardKeys: string[]) {
-        let nextPlayerIndex = (this.currentPlayerIndex + 1) % 4;
-        const playerHand = this.playerHands[playerKey];
-        let {
-            selectedCards,
-            remainingCards
-        } = playerHand.reduce(
-            (acc, card) => {
-                if (selectedCardKeys.find(key => card.key === key)) {
-                    acc.selectedCards.push(card);
-                } else {
-                    acc.remainingCards.push(card);
-                }
-                return acc;
-            }, {
-            selectedCards: [] as CardInfo[],
-            remainingCards: [] as CardInfo[],
-        }
-        )
+        const player = this.players[playerKey];
+        const playerHand = player.getCards();
+        const selectedCards = player.getCardsByKeys(selectedCardKeys);
 
-        let selectedCombination = createCombination(selectedCards, this.tableState.currentCards);
+        let selectedCombination = createCombination(
+            selectedCards, this.tableState.currentCards
+        );
         if (selectedCombination !== null) {
             if (this.pendingMahjongRequest !== '') {
-                this.throwIfMahjongRequestCheckFailed(selectedCards, selectedCombination);
+                this.throwIfMahjongRequestCheckFailed(
+                    selectedCards, selectedCombination
+                );
                 this.tableState.requestedCardName = this.pendingMahjongRequest;
             }
             else if (this.pendingBombToBePlayed) {
                 this.throwIfPendingBombCheckFailed(selectedCombination);
             }
             else if (this.tableState.requestedCardName !== '') {
-                this.throwIfRequestedCardCheckFailed(playerHand, selectedCards, selectedCombination);
+                this.throwIfRequestedCardCheckFailed(
+                    playerHand, selectedCards, selectedCombination
+                );
             }
             else {
                 if (!this.isPlayable(selectedCombination)) {
-                    throw new BusinessError("The selected combination cannot be played");
+                    throw new BusinessError(
+                        "The selected combination cannot be played"
+                    );
                 }
             }
 
             // Checks done, setting up new state
-            if (selectedCards[0].name === specialCards.DOGS) {
+            player.removeCards(selectedCards);
+            this.tableState.previousCards.push(...this.tableState.currentCards)
+            this.tableState.currentCards = selectedCards;
+            this.tableState.currentCombination = selectedCombination;
+            this.tableState.currentCardsOwnerIndex = this.currentPlayerIndex;
+            this.pendingDragonToBeGiven = false;
+            this.pendingBombToBePlayed = false;
+            this.pendingMahjongRequest = '';
+            
+            let nextPlayerIndex = (this.currentPlayerIndex + 1) % 4;
+            if (this.tableState.currentCards[0].name === specialCards.DOGS) {
                 nextPlayerIndex = (this.currentPlayerIndex + 2) % 4;
-                selectedCards = [];
-                selectedCombination = null;
+                this.tableState.currentCards = [];
+                this.tableState.currentCombination = null;
             }
             if (this.pendingMahjongRequest === '') {
                 if (this.tableState.requestedCardName !== "") {
-                    if (selectedCards.some(card => card.name === this.tableState.requestedCardName)) {
+                    if (this.tableState.currentCards.some(
+                        card => card.name === this.tableState.requestedCardName
+                    )) {
                         this.tableState.requestedCardName = "";
                     }
                 }
             }
-            while (this.playerHands[PLAYER_KEYS[nextPlayerIndex]].length === 0) {
+            while (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) {
                 nextPlayerIndex = (nextPlayerIndex + 1) % 4;
             }
-            if (this.gameRoundWinnerKey === '' && this.playerHands[playerKey].length === 0) {
+            if (this.gameRoundWinnerKey === '' && player.getNumCards() === 0) {
                 this.gameRoundWinnerKey = playerKey;
             }
-            this.tableState.previousCards.push(...this.tableState.currentCards);
-            this.tableState.currentCards = selectedCards;
-            this.tableState.currentCombination = selectedCombination;
-            this.tableState.currentCardsOwnerIndex = this.currentPlayerIndex;
-            this.playerHands[playerKey] = remainingCards;
             this.currentPlayerIndex = nextPlayerIndex;
-            this.pendingDragonToBeGiven = false;
-            this.pendingBombToBePlayed = false;
-            this.pendingMahjongRequest = '';
         }
         else {
             throw new BusinessError('Invalid or too weak card combination');
@@ -379,7 +365,7 @@ export class GameRoundState {
      */
     passTurn() {
         let nextPlayerIndex = (this.currentPlayerIndex + 1) % 4;
-        while (this.playerHands[PLAYER_KEYS[nextPlayerIndex]].length === 0) {
+        while (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) {
             if (nextPlayerIndex === this.tableState.currentCardsOwnerIndex) {
                 this.endTableRound();
             }
@@ -413,9 +399,11 @@ export class GameRoundState {
             this.onPendingDragon();
             return;
         }
-        this.playerHeaps[PLAYER_KEYS[this.tableState.currentCardsOwnerIndex]]?.push(
-            ...this.tableState.previousCards, ...this.tableState.currentCards
-        );
+        this.players[PLAYER_KEYS[this.tableState.currentCardsOwnerIndex]]
+            .addCardsToHeap(
+                ...this.tableState.previousCards,
+                ...this.tableState.currentCards
+            );
         this.tableState.endTableRound();
     }
 
@@ -424,12 +412,12 @@ export class GameRoundState {
      */
     mustEndGameRound() {
         // End the round if both players of a team have no cards left
-        if (this.playerHands[PLAYER_KEYS[0]].length === 0 &&
-            this.playerHands[PLAYER_KEYS[2]].length === 0) {
+        if (this.players[PLAYER_KEYS[0]].getNumCards() === 0 &&
+            this.players[PLAYER_KEYS[2]].getNumCards() === 0) {
             return true;
         }
-        if (this.playerHands[PLAYER_KEYS[1]].length === 0 &&
-            this.playerHands[PLAYER_KEYS[3]].length === 0) {
+        if (this.players[PLAYER_KEYS[1]].getNumCards() === 0 &&
+            this.players[PLAYER_KEYS[3]].getNumCards() === 0) {
             return true;
         }
         return false;
@@ -441,7 +429,7 @@ export class GameRoundState {
     calculateGameRoundScore(): RoundScore {
         let score = new RoundScore();
         let activePlayers = PLAYER_KEYS.reduce((active, key) => {
-            return active + (this.playerHands[key].length > 0 ? 1 : 0);
+            return active + (this.players[key].getNumCards() > 0 ? 1 : 0);
         }, 0);
         if (!this.gameRoundWinnerKey)
             throw new Error('Unexpected Error: Game Round Winner not set.');
@@ -476,25 +464,32 @@ export class GameRoundState {
                 throw new Error('Unexpected Error: Game Round Winner not set.');
             if (this.tableState.currentCardsOwnerIndex === index) {
                 if (this.tableState.currentCards[0].name !== specialCards.DRAGON) {
-                    playerHeaps[key].push(...this.tableState.currentCards,
-                        ...this.tableState.previousCards);
+                    playerHeaps[key].push(
+                        ...this.tableState.currentCards,
+                        ...this.tableState.previousCards
+                    );
                 }
             }
-            if (this.playerHands[key].length > 0) {
+            if (this.players[key].getNumCards() > 0) {
                 if (this.tableState.currentCards[0].name === specialCards.DRAGON) {
-                    playerHeaps[this.gameRoundWinnerKey].push(...this.tableState.currentCards,
-                        ...this.tableState.previousCards);
+                    playerHeaps[this.gameRoundWinnerKey].push(
+                        ...this.tableState.currentCards,
+                        ...this.tableState.previousCards
+                    );
                 }
-                playerHeaps[this.gameRoundWinnerKey].push(...playerHeaps[key], ...this.playerHeaps[key]);
+                playerHeaps[this.gameRoundWinnerKey].push(
+                    ...playerHeaps[key],
+                    ...this.players[key].heap
+                );
                 if (index % 2 === 0) {
-                    score.team13 += CardInfo.evaluatePoints(this.playerHands[key]);
+                    score.team13 += CardInfo.evaluatePoints(this.players[key].getCards());
                 }
                 else {
-                    score.team02 += CardInfo.evaluatePoints(this.playerHands[key]);
+                    score.team02 += CardInfo.evaluatePoints(this.players[key].getCards());
                 }
             }
             else {
-                for (const card of this.playerHeaps[key]) {
+                for (const card of this.players[key].heap) {
                     playerHeaps[key].push(card);
                 }
             }
@@ -516,15 +511,15 @@ export class GameRoundState {
      */
     private evaluatePlayerBets(score: RoundScore) {
         PLAYER_KEYS.forEach((playerKey, index) => {
-            if (!this.playerBets[playerKey]) return;
+            if (!this.players[playerKey].bet) return;
             let contribution = 0;
             if (this.gameRoundWinnerKey === playerKey) {
                 // Add the round winner's bet points
-                contribution += this.playerBets[playerKey];
+                contribution += this.players[playerKey].bet;
             }
             else {
                 // For all other players, decrease their teams' points by their bet points.
-                contribution -= this.playerBets[playerKey];
+                contribution -= this.players[playerKey].bet;
             }
             if (index % 2 === 0) {
                 score.team02 += contribution;

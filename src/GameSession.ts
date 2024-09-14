@@ -57,6 +57,7 @@ export class GameSession {
                 connected: false,
             }
             socket.data.playerKey = playerKey;
+            const player = this.gameState.currentGameRoundState.players[playerKey];
             socket.on('disconnect', (reason) => {
                 console.warn(`Player: '${playerKey}' disconnected: ${reason}`);
                 switch (this.gameState.status) {
@@ -105,27 +106,29 @@ export class GameSession {
             )).on(ClientEventType.REVEAL_ALL_CARDS,
                 this.eventHandlerWrapper((e: RevealAllCardsEvent) => {
                     // Do action...
+                    player.revealCardsOrElseThrow();
                     GameSession.emitEvent<AllCardsRevealedEvent>(socket, {
                         eventType: ServerEventType.ALL_CARDS_REVEALED,
                         data: {
-                            cards: GameSession.mapCardsToKeys(
-                                this.gameState.currentGameboardState.playerHands[playerKey]
-                            ),
+                            cards: GameSession.mapCardsToKeys(player.getRevealedCards()),
                         }
                     });
                 }
             )).on(ClientEventType.TRADE_CARDS,
                 this.eventHandlerWrapper((e: TradeCardsEvent) => {
-                    // Do action...
-                    if (++this.gameState.currentGameboardState.sentTrades === PLAYER_KEYS.length) {
+                    player.sendTradesOrElseThrow(e);
+                    if (PLAYER_KEYS.every(
+                        k => this.gameState.currentGameRoundState.players[k].hasSentTrades
+                    )) {
                         this.setExpectedEvents(ClientEventType.RECEIVE_TRADE);
                         this.onAllTradesCompleted();
                     }
                 }
             )).on(ClientEventType.RECEIVE_TRADE,
                 this.eventHandlerWrapper((e: ReceiveTradeEvent) => {
-                    // Do action...
-                    if (++this.gameState.currentGameboardState.receivedTrades === PLAYER_KEYS.length) {
+                    if (PLAYER_KEYS.every(
+                        k => this.gameState.currentGameRoundState.players[k].hasReceivedTrades
+                    )) {
                         this.onAllTradesReceived();
                     }
         
@@ -192,18 +195,20 @@ export class GameSession {
 
     private startGame() {
         for (const key of PLAYER_KEYS) {
+            const player = this.gameState.currentGameRoundState.players[key];
             this.emitEventByKey<GameRoundStartedEvent>(key, {
                 eventType: ServerEventType.GAME_ROUND_STARTED,
                 data: {
-                    partialCards: this.gameState.currentGameboardState.playerHands[key]
-                        .map(c => c.key).slice(0, 8)
+                    partialCards: GameSession.mapCardsToKeys(player.getRevealedCards())
                 },
             });
         }
     }
 
     private onAllTradesCompleted() {
+        this.gameState.currentGameRoundState.makeCardTrades()
         for (const key of PLAYER_KEYS) {
+            const player = this.gameState.currentGameRoundState.players[key];
             this.emitEventByKey<CardsTradedEvent>(key, {
                 eventType: ServerEventType.CARDS_TRADED,
                 data: {
@@ -219,7 +224,7 @@ export class GameSession {
         this.emitToNamespace<TableRoundStartedEvent>({
             eventType: ServerEventType.TABLE_ROUND_STARTED,
             data: {
-                currentPlayer: PLAYER_KEYS[this.gameState.currentGameboardState.currentPlayerIndex]
+                currentPlayer: PLAYER_KEYS[this.gameState.currentGameRoundState.currentPlayerIndex]
             }
         })
     }
