@@ -34,7 +34,7 @@ export class GameSession {
     };
     gameState: GameState;
 
-    expectedEvents = new Set<ClientEventType>([ClientEventType.JOIN_GAME]);
+    // expectedEvents = new Set<ClientEventType>([ClientEventType.JOIN_GAME]);
 
     constructor(sessionId: string, socketServer: Server, event: CreateRoomEvent) {
         this.id = sessionId;
@@ -51,12 +51,9 @@ export class GameSession {
                 socket.disconnect(true);
                 return;
             }
-            this.clients[playerKey] = {
-                playerKey: playerKey,
-                nickname: '',
-                connected: false,
-            }
+            this.clients[playerKey] = new GameClient(playerKey);
             socket.data.playerKey = playerKey;
+            const client = this.clients[playerKey];
             const player = this.gameState.currentGameRoundState.players[playerKey];
             socket.on('disconnect', (reason) => {
                 console.warn(`Player: '${playerKey}' disconnected: ${reason}`);
@@ -65,20 +62,21 @@ export class GameSession {
                         // End game due to disconnection
                         break;
                     case 'INIT':
-                        GameSession.broadcastEvent<PlayerLeftEvent>(socket, {
-                            eventType: ServerEventType.PLAYER_LEFT,
-                            playerKey: playerKey,
-                            data: undefined,
-                        });
+                        this.clients[playerKey] = null;
+                        if (client.hasJoinedGame) {
+                            this.emitToNamespace<PlayerLeftEvent>({
+                                eventType: ServerEventType.PLAYER_LEFT,
+                                playerKey: playerKey,
+                                data: undefined,
+                            });                            
+                        }
                     default:
                         break;
                 }
             }).on(ClientEventType.JOIN_GAME,
-                this.eventHandlerWrapper((e: JoinGameEvent) => {
-                    const client = this.clients[playerKey];
-                    if (!client) return;
+                this.eventHandlerWrapper(playerKey, (e: JoinGameEvent) => {
                     client.nickname = e.data.playerNickname;
-                    client.connected = true;
+                    client.joinGame();
                     GameSession.broadcastEvent<PlayerJoinedEvent>(
                         socket, {
                             eventType: ServerEventType.PLAYER_JOINED,
@@ -88,13 +86,13 @@ export class GameSession {
                             }
                         }
                     );
-                    if (PLAYER_KEYS.every(k => this.clients[k]?.connected)) {
+                    if (PLAYER_KEYS.every(k => this.clients[k]?.hasJoinedGame)) {
                         this.startGame();
                     }
                 })
             ).on(ClientEventType.PLACE_BET,
-                this.eventHandlerWrapper((e: PlaceBetEvent) => {
-                    // Do action...
+                this.eventHandlerWrapper(playerKey, (e: PlaceBetEvent) => {
+                    player.placeBetOrElseThrow(e);
                     GameSession.broadcastEvent<BetPlacedEvent>(socket, {
                         eventType: ServerEventType.BET_PLACED,
                         playerKey: playerKey,
@@ -102,10 +100,9 @@ export class GameSession {
                             betPoints: e.data.betPoints
                         }
                     })
-                }
-            )).on(ClientEventType.REVEAL_ALL_CARDS,
-                this.eventHandlerWrapper((e: RevealAllCardsEvent) => {
-                    // Do action...
+                })
+            ).on(ClientEventType.REVEAL_ALL_CARDS,
+                this.eventHandlerWrapper(playerKey, (e: RevealAllCardsEvent) => {
                     player.revealCardsOrElseThrow();
                     GameSession.emitEvent<AllCardsRevealedEvent>(socket, {
                         eventType: ServerEventType.ALL_CARDS_REVEALED,
@@ -113,39 +110,46 @@ export class GameSession {
                             cards: GameSession.mapCardsToKeys(player.getRevealedCards()),
                         }
                     });
-                }
-            )).on(ClientEventType.TRADE_CARDS,
-                this.eventHandlerWrapper((e: TradeCardsEvent) => {
-                    player.sendTradesOrElseThrow(e);
+                })
+            ).on(ClientEventType.TRADE_CARDS,
+                this.eventHandlerWrapper(playerKey, (e: TradeCardsEvent) => {
+                    player.finalizeTradesOrElseThrow(e);
                     if (PLAYER_KEYS.every(
                         k => this.gameState.currentGameRoundState.players[k].hasSentTrades
                     )) {
-                        this.setExpectedEvents(ClientEventType.RECEIVE_TRADE);
                         this.onAllTradesCompleted();
                     }
-                }
-            )).on(ClientEventType.RECEIVE_TRADE,
-                this.eventHandlerWrapper((e: ReceiveTradeEvent) => {
+                })
+            ).on(ClientEventType.RECEIVE_TRADE,
+                this.eventHandlerWrapper(playerKey, (e: ReceiveTradeEvent) => {
                     if (PLAYER_KEYS.every(
                         k => this.gameState.currentGameRoundState.players[k].hasReceivedTrades
                     )) {
                         this.onAllTradesReceived();
                     }
         
-                }
-            ))
+                })
+            );
             GameSession.emitEvent<WaitingForJoinEvent>(socket, {
                 eventType: ServerEventType.WAITING_4_JOIN,
                 playerKey: playerKey,
-                data: undefined,
+                data: PLAYER_KEYS.reduce((acc, k) => ({
+                    ...acc,
+                    [k]: this.clients[k]?.nickname,
+                }), {}),
             });
         });
     }
 
-    private eventHandlerWrapper<T extends ClientEventType>(f: (e: SessionClientEvent<T>) => void) {
+    private eventHandlerWrapper<T extends ClientEventType>(
+        playerKey: PlayerKey,
+        f: (e: SessionClientEvent<T>) => void
+    ) {
         return (event: SessionClientEvent<T>) => {
             try {
-                if (!this.expectedEvents.has(event.eventType))
+                // if (!this.expectedEvents.has(event.eventType))
+                //     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
+                if (!this.clients[playerKey]?.hasJoinedGame)
                     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
                 f(event);
             } catch (error) {
@@ -206,15 +210,15 @@ export class GameSession {
     }
 
     private onAllTradesCompleted() {
-        this.gameState.currentGameRoundState.makeCardTrades()
+        this.gameState.currentGameRoundState.makeCardTrades();
         for (const key of PLAYER_KEYS) {
             const player = this.gameState.currentGameRoundState.players[key];
             this.emitEventByKey<CardsTradedEvent>(key, {
                 eventType: ServerEventType.CARDS_TRADED,
                 data: {
-                    cardByTeammate: '',
-                    cardByLeft: '',
-                    cardByRight: '',
+                    cardByTeammate: player.incomingTrades.teammate.key,
+                    cardByLeft: player.incomingTrades.left.key,
+                    cardByRight: player.incomingTrades.right.key,
                 },
             })
         }
@@ -227,11 +231,6 @@ export class GameSession {
                 currentPlayer: PLAYER_KEYS[this.gameState.currentGameRoundState.currentPlayerIndex]
             }
         })
-    }
-
-    private setExpectedEvents(...eventTypes: ClientEventType[]) {
-        this.expectedEvents = new Set(eventTypes);
-        return this.expectedEvents;
     }
 
     isFull() {

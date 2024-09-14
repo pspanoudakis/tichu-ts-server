@@ -26,7 +26,12 @@ export enum ServerEventType {
     BUSINESS_ERROR = 'BUSINESS_ERROR',
 };
 
-export type WaitingForJoinEvent = GameEvent<ServerEventType.WAITING_4_JOIN>;
+export type WaitingForJoinEvent = GameEvent<
+    ServerEventType.WAITING_4_JOIN,
+    {
+        [playerKey in PlayerKey]?: string
+    }
+>;
 
 export type PlayerJoinedEvent = GameEvent<
     ServerEventType.PLAYER_JOINED,

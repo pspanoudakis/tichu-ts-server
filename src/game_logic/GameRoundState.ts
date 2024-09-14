@@ -10,7 +10,7 @@ import {
 import { CardInfo, specialCards } from "./CardInfo";
 import { Deck } from "./Deck";
 import { PLAYER_KEYS, PlayerKey, RoundScore } from "./GameState";
-import { PlayerState, PlayerTradeDecisions } from "./PlayerState";
+import { PlayerState } from "./PlayerState";
 
 /** Possible player bet points */
 export enum GameBet {
@@ -65,36 +65,32 @@ export class GameRoundState {
      * Hands the Deck cards to the players (in round-robin order).
      */
     private handCards() {
-        let playerHands = new PlayerCards();
+        let tempHands = new PlayerCards();
         let i = 0;
         let card;
         while ((card = this.deck.cards.pop()) !== undefined) {
-            playerHands[PLAYER_KEYS[i++]].push(card)
+            tempHands[PLAYER_KEYS[i++]].push(card)
             i %= PLAYER_KEYS.length;
         }
-        PLAYER_KEYS.forEach(k => this.players[k].handCards(playerHands[k]));
+        PLAYER_KEYS.forEach(k => this.players[k].handCards(tempHands[k]));
     }
 
-    /**
-     * Performs the desired player card trades and sets the Gameboard
-     * component state accordingly.
-     */
     makeCardTrades() {
-        let playerTrades: { [k in PlayerKey]: PlayerTradeDecisions} = {
-            player1: this.players['player1'].trades,
-            player2: this.players['player2'].trades,
-            player3: this.players['player3'].trades,
-            player4: this.players['player4'].trades,
-        };
         for (let i = 0; i < PLAYER_KEYS.length; i++) {
-            const teammateIdx = (i + 2) % PLAYER_KEYS.length;
-            const rightIdx = (i + 1) % PLAYER_KEYS.length;
-            const leftIdx = (i > 0) ? (i - 1) : (PLAYER_KEYS.length - 1);
-            this.players[PLAYER_KEYS[i]].receiveTradesOrElseThrow(
-                playerTrades[PLAYER_KEYS[teammateIdx]].toTeammate,
-                playerTrades[PLAYER_KEYS[leftIdx]].toRight,
-                playerTrades[PLAYER_KEYS[rightIdx]].toLeft,
-            )
+            const teammate = this.players[PLAYER_KEYS[
+                (i + 2) % PLAYER_KEYS.length
+            ]];
+            const rightOp = this.players[PLAYER_KEYS[
+                (i + 1) % PLAYER_KEYS.length
+            ]];
+            const leftOp = this.players[PLAYER_KEYS[
+                (i > 0) ? (i - 1) : (PLAYER_KEYS.length - 1)
+            ]];
+            this.players[PLAYER_KEYS[i]].incomingTrades = {
+                teammate: teammate.tradeDecisions.teammate,
+                left: leftOp.tradeDecisions.right,
+                right: rightOp.tradeDecisions.left,
+            }
         }
     }
 

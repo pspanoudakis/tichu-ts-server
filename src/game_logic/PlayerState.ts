@@ -4,9 +4,9 @@ import { CardInfo, specialCards } from "./CardInfo";
 import { GameBet } from "./GameRoundState";
 
 export type PlayerTradeDecisions = {
-    toTeammate: CardInfo,
-    toLeft: CardInfo,
-    toRight: CardInfo,
+    teammate: CardInfo,
+    left: CardInfo,
+    right: CardInfo,
 };
 
 export class PlayerState {
@@ -14,7 +14,8 @@ export class PlayerState {
     private _cards = new Map<string, CardInfo>();
     private _heap = Array<CardInfo>();
     private _bet = GameBet.NONE;
-    private _trades?: PlayerTradeDecisions;
+    private _tradesOut?: PlayerTradeDecisions;
+    private _tradesIn?: PlayerTradeDecisions;
     private _hasPlacedBet = false;
     private _hasRevealedCards = false;
     private _hasSentTrades = false;
@@ -36,10 +37,34 @@ export class PlayerState {
     get bet() {
         return this._bet;
     }
-    get trades(): Readonly<PlayerTradeDecisions>{
-        if (!this._trades)
-            throw new BusinessError('This player has not finalized trade decisions.');
-        return this._trades;
+    get tradeDecisions(): Readonly<PlayerTradeDecisions>{
+        if (!this._tradesOut)
+            throw new BusinessError(
+                'This player has not finalized trade decisions.'
+            );
+        return this._tradesOut;
+    }
+    get incomingTrades(): Readonly<PlayerTradeDecisions>{
+        if (!this._tradesIn)
+            throw new BusinessError(
+                'Incoming trades for this player have not been stored.'
+            );
+        return this._tradesIn;
+    }
+    set incomingTrades(t: PlayerTradeDecisions){
+        if (!this._hasSentTrades)
+            throw new BusinessError(
+                'Trade decisions must be finalized before receiving incoming trades.'
+            );
+        if (this._tradesIn)
+            throw new BusinessError(
+                'Incoming trades for this player have already been set.'
+            );
+        this._tradesIn = {
+            left: t.left,
+            right: t.right,
+            teammate: t.teammate
+        };
     }
     get hasPlacedBet() {
         return this._hasPlacedBet;
@@ -98,28 +123,30 @@ export class PlayerState {
         this._hasRevealedCards = true;            
     }
     
-    sendTradesOrElseThrow(e: TradeCardsEvent) {
+    finalizeTradesOrElseThrow(e: TradeCardsEvent) {
         if (this._hasSentTrades)
-            throw new BusinessError('This player has already send cards for trade.');
+            throw new BusinessError('This player has already finalized cards for trade.');
         if (!this._hasRevealedCards)
-            throw new BusinessError('Cannot perform trades before revealing cards.');
-        this._trades = {
-            toTeammate: this.findCardByKeyOrElseThrow(e.data.teammateCardKey),
-            toLeft: this.findCardByKeyOrElseThrow(e.data.leftCardKey),
-            toRight: this.findCardByKeyOrElseThrow(e.data.rightCardKey),
+            throw new BusinessError('Cannot finalize trades before revealing cards.');
+        this._tradesOut = {
+            teammate: this.findCardByKeyOrElseThrow(e.data.teammateCardKey),
+            left: this.findCardByKeyOrElseThrow(e.data.leftCardKey),
+            right: this.findCardByKeyOrElseThrow(e.data.rightCardKey),
         };
-        this._cards.delete(this._trades.toLeft.key);
-        this._cards.delete(this._trades.toRight.key);
-        this._cards.delete(this._trades.toTeammate.key);
+        this._cards.delete(this._tradesOut.left.key);
+        this._cards.delete(this._tradesOut.right.key);
+        this._cards.delete(this._tradesOut.teammate.key);
         this._hasSentTrades = true;
     }
 
-    receiveTradesOrElseThrow(cardByTeammate: CardInfo, cardByLeft: CardInfo, cardByRight: CardInfo) {
+    receiveTradesOrElseThrow() {
+        if (!this._tradesIn)
+            throw new BusinessError('No incoming trades to receive have been stored.');
         if (this._hasReceivedTrades)
             throw new BusinessError('Trades have already been received by this player');
-        this._cards.set(cardByTeammate.key, cardByTeammate);
-        this._cards.set(cardByLeft.key, cardByLeft);
-        this._cards.set(cardByRight.key, cardByRight);
+        this._cards.set(this._tradesIn.left.key, this._tradesIn.left);
+        this._cards.set(this._tradesIn.right.key, this._tradesIn.right);
+        this._cards.set(this._tradesIn.teammate.key, this._tradesIn.teammate);
         this._hasReceivedTrades = true;
     }
 
