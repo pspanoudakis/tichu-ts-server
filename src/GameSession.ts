@@ -1,8 +1,8 @@
 import { Namespace, Server, Socket } from "socket.io";
 import { GameClient } from "./GameClient";
-import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent, SessionClientEvent } from "./events/ClientEvents";
+import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent, SessionClientEvent, PlayCardsEvent } from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
-import { AllCardsRevealedEvent, BetPlacedEvent, BusinessErrorEvent, CardsTradedEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
+import { AllCardsRevealedEvent, BetPlacedEvent, CardsTradedEvent, ErrorEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
 import { CardInfo } from "./game_logic/CardInfo";
 import { BusinessError } from "./responses/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
@@ -74,7 +74,11 @@ export class GameSession {
                         break;
                 }
             }).on(ClientEventType.JOIN_GAME, (e: JoinGameEvent) => {
-                client.joinGame();
+                try {
+                    client.joinGame();
+                } catch (error) {
+                    return this.eventHandlerWrapper(playerKey, () => { throw error; })(e);
+                }
                 client.nickname = e.data.playerNickname;
                 GameSession.broadcastEvent<PlayerJoinedEvent>(
                     socket, {
@@ -127,6 +131,12 @@ export class GameSession {
                     }
         
                 })
+            ).on(ClientEventType.PLAY_CARDS,
+                this.eventHandlerWrapper(playerKey, (e: PlayCardsEvent) => {
+                    this.gameState.currentGameRoundState.playCards(
+                        playerKey, e.data.selectedCardKeys
+                    );
+                })
             );
             GameSession.emitEvent<WaitingForJoinEvent>(socket, {
                 eventType: ServerEventType.WAITING_4_JOIN,
@@ -139,21 +149,24 @@ export class GameSession {
         });
     }
 
-    private eventHandlerWrapper<T extends ClientEventType>(
+    private eventHandlerWrapper<T extends ClientEventType, D = any>(
         playerKey: PlayerKey,
-        f: (e: SessionClientEvent<T>) => void
+        eventHandler: (e: SessionClientEvent<T, D>) => void
     ) {
-        return (event: SessionClientEvent<T>) => {
+        return (event: SessionClientEvent<T, D>) => {
             try {
                 // if (!this.expectedEvents.has(event.eventType))
                 //     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
                 if (!this.clients[playerKey]?.hasJoinedGame)
                     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
-                f(event);
+                eventHandler(event);
             } catch (error) {
-                this.emitEventByKey<BusinessErrorEvent>(playerKey, {
-                    eventType: ServerEventType.BUSINESS_ERROR,
-                    data: error,
+                this.emitEventByKey<ErrorEvent>(playerKey, {
+                    eventType: 
+                        (error instanceof BusinessError) ?
+                        ServerEventType.BUSINESS_ERROR :
+                        ServerEventType.UNKNOWN_SERVER_ERROR,
+                    data: { message: error?.toString?.() ?? JSON.stringify(error) },
                 });
             }
         };

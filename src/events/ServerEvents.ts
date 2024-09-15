@@ -24,6 +24,7 @@ export enum ServerEventType {
     GAME_ROUND_ENDED = 'GAME_ROUND_ENDED',
     GAME_ENDED = 'GAME_ENDED',
     BUSINESS_ERROR = 'BUSINESS_ERROR',
+    UNKNOWN_SERVER_ERROR = 'UNKNOWN_SERVER_ERROR',
 };
 
 export type WaitingForJoinEvent = GameEvent<
@@ -123,6 +124,8 @@ export type GameEndedEvent = GameEvent<
     }
 >;
 
-export type BusinessErrorEvent = GameEvent<
-    ServerEventType.BUSINESS_ERROR, any
+export type ErrorEvent = GameEvent<
+    ServerEventType.BUSINESS_ERROR | ServerEventType.UNKNOWN_SERVER_ERROR, {
+        message: string
+    }
 >;
