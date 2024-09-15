@@ -15,6 +15,13 @@ interface CustomSocketData {
     playerKey?: PlayerKey;
 };
 
+type CustomSocket = Socket<
+    DefaultEventsMap,
+    DefaultEventsMap,
+    DefaultEventsMap,
+    CustomSocketData
+>;
+
 export class GameSession {
     readonly id: string;
 
@@ -77,7 +84,7 @@ export class GameSession {
                 try {
                     client.joinGame();
                 } catch (error) {
-                    return this.eventHandlerWrapper(playerKey, () => { throw error; })(e);
+                    return GameSession.emitError(socket, error);
                 }
                 client.nickname = e.data.playerNickname;
                 GameSession.broadcastEvent<PlayerJoinedEvent>(
@@ -149,6 +156,22 @@ export class GameSession {
         });
     }
 
+    private static emitError(socket: CustomSocket, error: any) {
+        GameSession.emitEvent<ErrorEvent>(socket, {
+            eventType: 
+                (error instanceof BusinessError) ?
+                ServerEventType.BUSINESS_ERROR :
+                ServerEventType.UNKNOWN_SERVER_ERROR,
+            data: { message: error?.toString?.() ?? JSON.stringify(error) },
+        });        
+    }
+
+    private emitErrorByKey(playerKey: PlayerKey, error: any) {
+        const socket = this.getSocketByPlayerKey(playerKey);
+        if (!socket) return;
+        GameSession.emitError(socket, error);
+    }
+
     private eventHandlerWrapper<T extends ClientEventType, D = any>(
         playerKey: PlayerKey,
         eventHandler: (e: SessionClientEvent<T, D>) => void
@@ -161,13 +184,7 @@ export class GameSession {
                     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
                 eventHandler(event);
             } catch (error) {
-                this.emitEventByKey<ErrorEvent>(playerKey, {
-                    eventType: 
-                        (error instanceof BusinessError) ?
-                        ServerEventType.BUSINESS_ERROR :
-                        ServerEventType.UNKNOWN_SERVER_ERROR,
-                    data: { message: error?.toString?.() ?? JSON.stringify(error) },
-                });
+                this.emitErrorByKey(playerKey, error);
             }
         };
     }
@@ -193,7 +210,7 @@ export class GameSession {
     }
     
     private static emitEvent<T extends EventBase>
-    (socket: Socket, e: T) {
+    (socket: CustomSocket, e: T) {
         socket.emit(e.eventType, e);
     }
 
@@ -204,7 +221,7 @@ export class GameSession {
     }
     
     private static broadcastEvent<T extends EventBase>
-    (socketToExclude: Socket, e: T) {
+    (socketToExclude: CustomSocket, e: T) {
         socketToExclude.broadcast.emit(e.eventType, e);
     }
 
