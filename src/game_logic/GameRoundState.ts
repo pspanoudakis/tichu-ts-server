@@ -242,6 +242,9 @@ export class GameRoundState {
      * @param selectedCardKeys The keys of the cards selected by the player.
      */
     playCards(playerKey: PlayerKey, selectedCardKeys: string[]) {
+        if (!(PLAYER_KEYS[this.currentPlayerIndex] === playerKey)) {
+            throw new BusinessError(`It is not '${playerKey}' turn to play.`);
+        }
         const player = this.players[playerKey];
         const playerHand = player.getCards();
         const selectedCards = player.getCardsByKeys(selectedCardKeys);
@@ -267,7 +270,7 @@ export class GameRoundState {
             else {
                 if (!this.isPlayable(selectedCombination)) {
                     throw new BusinessError(
-                        "The selected combination cannot be played"
+                        "The selected combination cannot be played."
                     );
                 }
             }
@@ -306,7 +309,7 @@ export class GameRoundState {
             this.currentPlayerIndex = nextPlayerIndex;
         }
         else {
-            throw new BusinessError('Invalid or too weak card combination');
+            throw new BusinessError('Invalid or unplayable combination.');
         }
     }
 
