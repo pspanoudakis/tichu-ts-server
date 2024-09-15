@@ -68,10 +68,8 @@ export class GameServer {
         }
     }
 
-    listen(port: number) {
-        this.httpServer.listen(port, () => {
-            console.info(`Node.js TS server running on port [${port}]`);
-        });
+    listen(port: number, callback: () => any) {
+        this.httpServer.listen(port, callback);
     }
 
     handleCreateRoomEvent(e: CreateRoomEvent): RoomCreatedResponse {

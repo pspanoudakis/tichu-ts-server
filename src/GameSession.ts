@@ -51,9 +51,9 @@ export class GameSession {
                 socket.disconnect(true);
                 return;
             }
-            this.clients[playerKey] = new GameClient(playerKey);
+            const client = new GameClient(playerKey);
             socket.data.playerKey = playerKey;
-            const client = this.clients[playerKey];
+            this.clients[playerKey] = client;
             const player = this.gameState.currentGameRoundState.players[playerKey];
             socket.on('disconnect', (reason) => {
                 console.warn(`Player: '${playerKey}' disconnected: ${reason}`);
@@ -73,24 +73,22 @@ export class GameSession {
                     default:
                         break;
                 }
-            }).on(ClientEventType.JOIN_GAME,
-                this.eventHandlerWrapper(playerKey, (e: JoinGameEvent) => {
-                    client.nickname = e.data.playerNickname;
-                    client.joinGame();
-                    GameSession.broadcastEvent<PlayerJoinedEvent>(
-                        socket, {
-                            eventType: ServerEventType.PLAYER_JOINED,
-                            playerKey: playerKey,
-                            data: {
-                                playerNickname: client.nickname,
-                            }
+            }).on(ClientEventType.JOIN_GAME, (e: JoinGameEvent) => {
+                client.joinGame();
+                client.nickname = e.data.playerNickname;
+                GameSession.broadcastEvent<PlayerJoinedEvent>(
+                    socket, {
+                        eventType: ServerEventType.PLAYER_JOINED,
+                        playerKey: playerKey,
+                        data: {
+                            playerNickname: client.nickname,
                         }
-                    );
-                    if (PLAYER_KEYS.every(k => this.clients[k]?.hasJoinedGame)) {
-                        this.startGame();
                     }
-                })
-            ).on(ClientEventType.PLACE_BET,
+                );
+                if (PLAYER_KEYS.every(k => this.clients[k]?.hasJoinedGame)) {
+                    this.startGame();
+                }
+            }).on(ClientEventType.PLACE_BET,
                 this.eventHandlerWrapper(playerKey, (e: PlaceBetEvent) => {
                     player.placeBetOrElseThrow(e);
                     GameSession.broadcastEvent<BetPlacedEvent>(socket, {
@@ -153,7 +151,7 @@ export class GameSession {
                     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
                 f(event);
             } catch (error) {
-                this.emitEventByKey<BusinessErrorEvent>(event.playerKey, {
+                this.emitEventByKey<BusinessErrorEvent>(playerKey, {
                     eventType: ServerEventType.BUSINESS_ERROR,
                     data: error,
                 });

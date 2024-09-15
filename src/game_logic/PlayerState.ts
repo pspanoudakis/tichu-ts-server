@@ -99,7 +99,7 @@ export class PlayerState {
     }
 
     getRevealedCards() {
-        return this._hasRevealedCards ? this.getCards() : this.getCards().slice(0, 9);
+        return this._hasRevealedCards ? this.getCards() : this.getCards().slice(0, 8);
     }
 
     placeBetOrElseThrow(e: PlaceBetEvent) {
