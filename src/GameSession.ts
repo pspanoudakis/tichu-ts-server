@@ -1,11 +1,12 @@
 import { Namespace, Server, Socket } from "socket.io";
 import { GameClient } from "./GameClient";
-import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent, SessionClientEvent, PlayCardsEvent } from "./events/ClientEvents";
+import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent, SessionClientEvent, PlayCardsEvent, PassTurnEvent } from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
-import { AllCardsRevealedEvent, BetPlacedEvent, CardsTradedEvent, ErrorEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
+import { AllCardsRevealedEvent, BetPlacedEvent, CardsPlayedEvent, CardsTradedEvent, ErrorEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, TurnPassedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
 import { CardInfo } from "./game_logic/CardInfo";
 import { BusinessError } from "./responses/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
+import { UnexpectedCombinationType } from "./game_logic/CardCombinations";
 
 type EventBase = {
     eventType: string
@@ -140,9 +141,32 @@ export class GameSession {
                 })
             ).on(ClientEventType.PLAY_CARDS,
                 this.eventHandlerWrapper(playerKey, (e: PlayCardsEvent) => {
-                    this.gameState.currentGameRoundState.playCards(
-                        playerKey, e.data.selectedCardKeys
+                    this.gameState.currentGameRoundState.playCardsOrElseThrow(
+                        player, e.data.selectedCardKeys
                     );
+                    const combType = 
+                        this.gameState.currentGameRoundState.tableState.currentCombination?.type;
+                    if (!combType) throw new UnexpectedCombinationType (
+                        'Unexpected Error: Table combination is null'
+                    );
+                    this.emitToNamespace<CardsPlayedEvent>({
+                        playerKey: playerKey,
+                        eventType: ServerEventType.CARDS_PLAYED,
+                        data: {
+                            combinationType: combType,
+                            numCardsRemainingInHand: player.getNumCards(),
+                            tableCardKeys: GameSession.mapCardsToKeys(player.getCards())
+                        }
+                    });
+                })
+            ).on(ClientEventType.PASS_TURN,
+                this.eventHandlerWrapper(playerKey, (e: PassTurnEvent) => {
+                    this.gameState.currentGameRoundState.passTurnOrElseThrow(player);
+                    this.emitToNamespace<TurnPassedEvent>({
+                        playerKey: playerKey,
+                        eventType: ServerEventType.TURN_PASSED,
+                        data: undefined,
+                    })
                 })
             );
             GameSession.emitEvent<WaitingForJoinEvent>(socket, {

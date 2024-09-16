@@ -241,11 +241,10 @@ export class GameRoundState {
      * @param playerKey The key of the player.
      * @param selectedCardKeys The keys of the cards selected by the player.
      */
-    playCards(playerKey: PlayerKey, selectedCardKeys: string[]) {
-        if (!(PLAYER_KEYS[this.currentPlayerIndex] === playerKey)) {
-            throw new BusinessError(`It is not '${playerKey}' turn to play.`);
+    playCardsOrElseThrow(player: PlayerState, selectedCardKeys: string[]) {
+        if (!(PLAYER_KEYS[this.currentPlayerIndex] === player.playerKey)) {
+            throw new BusinessError(`It is not '${player.playerKey}' turn to play.`);
         }
-        const player = this.players[playerKey];
         const playerHand = player.getCards();
         const selectedCards = player.getCardsByKeys(selectedCardKeys);
 
@@ -304,7 +303,7 @@ export class GameRoundState {
                 nextPlayerIndex = (nextPlayerIndex + 1) % 4;
             }
             if (this.gameRoundWinnerKey === '' && player.getNumCards() === 0) {
-                this.gameRoundWinnerKey = playerKey;
+                this.gameRoundWinnerKey = player.playerKey;
             }
             this.currentPlayerIndex = nextPlayerIndex;
         }
@@ -318,41 +317,48 @@ export class GameRoundState {
      * requested card and the current table combination.
      * @param playerCards The player's cards.
      */
-    canPassTurn(playerCards: Array<CardInfo>) {
-        if (this.tableState.requestedCardName === "") { return true; }
-        if (this.tableState.currentCombination !== null) {
-            switch (this.tableState.currentCombination.type) {
-                case CardCombinationType.BOMB:
-                    return this.tableState.currentCombination.compare(
-                        playerCards,
-                        this.tableState.requestedCardName
-                    ) >= 0;
-                case CardCombinationType.SINGLE:
-                case CardCombinationType.COUPLE:
-                case CardCombinationType.TRIPLET:
-                case CardCombinationType.FULLHOUSE:
-                    if (
-                        this.tableState.currentCombination.compare(
-                            playerCards, this.tableState.requestedCardName
-                        ) < 0
-                    ) return false;
-                    break;
-                case CardCombinationType.STEPS:
-                case CardCombinationType.KENTA:
-                    if (
-                        this.tableState.currentCombination.compare(
-                            playerCards,
-                            this.tableState.requestedCardName,
-                            this.tableState.currentCombination.length
-                        ) < 0
-                    ) return false;
-                    break;
-                default:
-                    throw new UnexpectedCombinationType(this.tableState.currentCombination.type);
-            }
-            return Bomb.getStrongestRequested(playerCards, this.tableState.requestedCardName) === null;
+    private throwIfCannotPass(player: PlayerState) {
+        if (player.playerKey !== PLAYER_KEYS[this.currentPlayerIndex])
+            throw new BusinessError(`It is not this player's turn.`);
+        if (this.pendingBombToBePlayed)
+            throw new BusinessError('A Bomb must be played.');
+        if (this.tableState.currentCombination === null)
+            throw new BusinessError('The table round starter cannot pass.');
+        if (this.tableState.requestedCardName === "") return;
+        const playerCards = player.getCards();
+        switch (this.tableState.currentCombination.type) {
+            case CardCombinationType.BOMB:
+                if (this.tableState.currentCombination.compare(
+                    playerCards,
+                    this.tableState.requestedCardName
+                ) < 0)
+                    throw new BusinessError(
+                        'The majong request must be satisfied by using a bomb.'
+                    );
+                break;
+            case CardCombinationType.SINGLE:
+            case CardCombinationType.COUPLE:
+            case CardCombinationType.TRIPLET:
+            case CardCombinationType.FULLHOUSE:
+                if (this.tableState.currentCombination.compare(
+                    playerCards, this.tableState.requestedCardName
+                ) < 0)
+                    throw new BusinessError('The majong request must be satisfied.');
+                break;
+            case CardCombinationType.STEPS:
+            case CardCombinationType.KENTA:
+                if (this.tableState.currentCombination.compare(
+                    playerCards,
+                    this.tableState.requestedCardName,
+                    this.tableState.currentCombination.length
+                ) < 0)
+                    throw new BusinessError('The majong request must be satisfied.');
+                break;
+            default:
+                throw new UnexpectedCombinationType(this.tableState.currentCombination.type);
         }
-        return false;
+        if (Bomb.getStrongestRequested(playerCards, this.tableState.requestedCardName))
+            throw new BusinessError('The majong request must be satisfied by using a bomb.');
     }
 
     /**
@@ -362,7 +368,8 @@ export class GameRoundState {
      * and if the next player is the owner of the currently on-table cards, the round will end).
      * Otherwise, an alert message will be displayed, and the current player will be forced to play.
      */
-    passTurn() {
+    passTurnOrElseThrow(player: PlayerState) {
+        this.throwIfCannotPass(player);
         let nextPlayerIndex = (this.currentPlayerIndex + 1) % 4;
         while (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) {
             if (nextPlayerIndex === this.tableState.currentCardsOwnerIndex) {
