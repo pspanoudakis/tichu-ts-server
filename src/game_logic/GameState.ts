@@ -1,4 +1,6 @@
+import { BusinessError } from "../responses/BusinessError";
 import { GameRoundState } from "./GameRoundState"; 
+import { GameWinnerResult } from "./GameWinnerResult";
 
 const _PLAYER_KEYS = {
     PLAYER1: 'player1',
@@ -34,6 +36,7 @@ export class RoundScore {
 }
 
 export class GameState {
+    private _result?: GameWinnerResult;
     scoreHistory: RoundScore[] = [];
     team02TotalPoints = 0;
     team13TotalPoints = 0;
@@ -64,6 +67,22 @@ export class GameState {
     endGameRound() {
         const score = this.currentRound.endGameRoundOrElseThrow();
         this.scoreHistory.push(score);
+        this.team02TotalPoints += score.team02;
+        this.team13TotalPoints += score.team13;
+        if (score.team02 > score.team13) {
+            this._result = TEAM_KEYS.TEAM_02;
+        } else if (score.team02 < score.team13) {
+            this._result = TEAM_KEYS.TEAM_13;
+        } else {
+            this._result = 'TIE';
+        }
+        this.gameOver = true;
         return score;
+    }
+
+    get result() {
+        if (!this._result)
+            throw new BusinessError('Game Result not decided yet.');
+        return this._result;
     }
 }

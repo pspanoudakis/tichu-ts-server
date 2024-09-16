@@ -122,6 +122,9 @@ export type GameRoundEndedEvent = GameEvent<
 export type GameEndedEvent = GameEvent<
     ServerEventType.GAME_ENDED, {
         result: GameWinnerResult,
+        team02TotalScore: number,
+        team13TotalScore: number,
+        scores: RoundScore[],
     }
 >;
 

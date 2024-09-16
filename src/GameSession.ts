@@ -2,7 +2,7 @@ import { Namespace, Server, Socket } from "socket.io";
 import { GameClient } from "./GameClient";
 import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent, SessionClientEvent, PlayCardsEvent, PassTurnEvent, DropBombEvent, RequestCardEvent, GiveDragonEvent } from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
-import { AllCardsRevealedEvent, BetPlacedEvent, BombDroppedEvent, CardRequestedEvent, CardsPlayedEvent, CardsTradedEvent, DragonGivenEvent, ErrorEvent, GameRoundEndedEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, TurnPassedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
+import { AllCardsRevealedEvent, BetPlacedEvent, BombDroppedEvent, CardRequestedEvent, CardsPlayedEvent, CardsTradedEvent, DragonGivenEvent, ErrorEvent, GameEndedEvent, GameRoundEndedEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, TurnPassedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
 import { CardInfo } from "./game_logic/CardInfo";
 import { BusinessError } from "./responses/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
@@ -156,7 +156,8 @@ export class GameSession {
                             combinationType: combType,
                             numCardsRemainingInHand: player.getNumCards(),
                             tableCardKeys: GameSession.mapCardsToKeys(player.getCards()),
-                            requestedCardName: this.gameState.currentRound.table.requestedCardName,
+                            requestedCardName: 
+                                this.gameState.currentRound.table.requestedCardName,
                         }
                     });
                     if (this.gameState.currentRound.mustEndGameRound()) {
@@ -168,6 +169,18 @@ export class GameSession {
                                 roundScore: score
                             }
                         });
+                        if (this.gameState.mustEndGame()) {
+                            this.emitToNamespace<GameEndedEvent>({
+                                playerKey: playerKey,
+                                eventType: ServerEventType.GAME_ENDED,
+                                data: {
+                                    result: this.gameState.result,
+                                    team02TotalScore: this.gameState.team02TotalPoints,
+                                    team13TotalScore: this.gameState.team13TotalPoints,
+                                    scores: this.gameState.scoreHistory,
+                                }
+                            });
+                        }
                     }
                 })
             ).on(ClientEventType.PASS_TURN,
