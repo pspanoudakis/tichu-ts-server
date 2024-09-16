@@ -227,10 +227,13 @@ export class GameSession {
             GameSession.emitEvent<WaitingForJoinEvent>(socket, {
                 eventType: ServerEventType.WAITING_4_JOIN,
                 playerKey: playerKey,
-                data: PLAYER_KEYS.reduce((acc, k) => ({
-                    ...acc,
-                    [k]: this.clients[k]?.nickname,
-                }), {}),
+                data: {
+                    winningScore: this.gameState.winningScore,
+                    presentPlayers: PLAYER_KEYS.reduce((acc, k) => ({
+                        ...acc,
+                        [k]: this.clients[k]?.nickname,
+                    }), {})
+                },
             });
         });
     }

@@ -28,10 +28,12 @@ export enum ServerEventType {
 };
 
 export type WaitingForJoinEvent = GameEvent<
-    ServerEventType.WAITING_4_JOIN,
-    {
-        [playerKey in PlayerKey]?: string
-    }
+    ServerEventType.WAITING_4_JOIN, {
+        presentPlayers: {
+            [playerKey in PlayerKey]?: string
+        },
+        winningScore: number
+    }    
 >;
 
 export type PlayerJoinedEvent = GameEvent<
