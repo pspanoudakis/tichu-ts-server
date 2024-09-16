@@ -88,8 +88,7 @@ export class GameSession {
                     return GameSession.emitError(socket, error);
                 }
                 client.nickname = e.data.playerNickname;
-                GameSession.broadcastEvent<PlayerJoinedEvent>(
-                    socket, {
+                this.emitToNamespace<PlayerJoinedEvent>({
                         eventType: ServerEventType.PLAYER_JOINED,
                         playerKey: playerKey,
                         data: {
@@ -103,7 +102,7 @@ export class GameSession {
             }).on(ClientEventType.PLACE_BET,
                 this.eventHandlerWrapper(playerKey, (e: PlaceBetEvent) => {
                     player.placeBetOrElseThrow(e);
-                    GameSession.broadcastEvent<BetPlacedEvent>(socket, {
+                    this.emitToNamespace<BetPlacedEvent>(, {
                         eventType: ServerEventType.BET_PLACED,
                         playerKey: playerKey,
                         data: {
