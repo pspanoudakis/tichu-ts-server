@@ -13,6 +13,7 @@ export enum ServerEventType {
     CARDS_PLAYED = 'CARDS_PLAYED',
     TURN_PASSED = 'TURN_PASSED',
     CARDS_TRADED = 'CARDS_TRADED',
+    PENDING_DRAGON_DECISION ='PENDING_DRAGON_DECISION',
     DRAGON_GIVEN = 'DRAGON_GIVEN',
     BET_PLACED = 'BET_PLACED',
     BOMB_DROPPED = 'BOMB_DROPPED',
@@ -68,6 +69,10 @@ export type CardsTradedEvent = GameEvent<
         cardByLeft: CardKey,
         cardByRight: CardKey,
     }
+>;
+
+export type PendingDragonDecisionEvent = GameEvent<
+    ServerEventType.PENDING_DRAGON_DECISION
 >;
 
 export type DragonGivenEvent = GameEvent<
