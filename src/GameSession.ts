@@ -168,7 +168,7 @@ export class GameSession {
                                 roundScore: score
                             }
                         });
-                        if (this.gameState.mustEndGame()) {
+                        if (this.gameState.isGameOver) {
                             this.emitToNamespace<GameEndedEvent>({
                                 playerKey: playerKey,
                                 eventType: ServerEventType.GAME_ENDED,

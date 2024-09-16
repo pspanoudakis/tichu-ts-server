@@ -37,11 +37,11 @@ export class RoundScore {
 
 export class GameState {
     private _result?: GameWinnerResult;
-    scoreHistory: RoundScore[] = [];
+    scoreHistory = Array<RoundScore>();
     team02TotalPoints = 0;
     team13TotalPoints = 0;
-    winningScore: number;
-    gameOver = false;
+    readonly winningScore: number;
+    private _isGameOver = false;
     status: 'INIT' | 'IN_PROGRESS' | 'OVER' = 'INIT';
     currentRound = new GameRoundState();
 
@@ -69,14 +69,16 @@ export class GameState {
         this.scoreHistory.push(score);
         this.team02TotalPoints += score.team02;
         this.team13TotalPoints += score.team13;
-        if (score.team02 > score.team13) {
-            this._result = TEAM_KEYS.TEAM_02;
-        } else if (score.team02 < score.team13) {
-            this._result = TEAM_KEYS.TEAM_13;
-        } else {
-            this._result = 'TIE';
+        if(this.mustEndGame()) {
+            if (score.team02 > score.team13) {
+                this._result = TEAM_KEYS.TEAM_02;
+            } else if (score.team02 < score.team13) {
+                this._result = TEAM_KEYS.TEAM_13;
+            } else {
+                this._result = 'TIE';
+            }
+            this._isGameOver = true;
         }
-        this.gameOver = true;
         return score;
     }
 
@@ -84,5 +86,9 @@ export class GameState {
         if (!this._result)
             throw new BusinessError('Game Result not decided yet.');
         return this._result;
+    }
+
+    get isGameOver() {
+        return this._isGameOver;
     }
 }
