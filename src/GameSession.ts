@@ -62,7 +62,7 @@ export class GameSession {
             const client = new GameClient(playerKey);
             socket.data.playerKey = playerKey;
             this.clients[playerKey] = client;
-            const player = this.gameState.currentGameRoundState.players[playerKey];
+            const player = this.gameState.currentRound.players[playerKey];
             socket.on('disconnect', (reason) => {
                 console.warn(`Player: '${playerKey}' disconnected: ${reason}`);
                 switch (this.gameState.status) {
@@ -125,7 +125,7 @@ export class GameSession {
                 this.eventHandlerWrapper(playerKey, (e: TradeCardsEvent) => {
                     player.finalizeTradesOrElseThrow(e);
                     if (PLAYER_KEYS.every(
-                        k => this.gameState.currentGameRoundState.players[k].hasSentTrades
+                        k => this.gameState.currentRound.players[k].hasSentTrades
                     )) {
                         this.onAllTradesCompleted();
                     }
@@ -133,7 +133,7 @@ export class GameSession {
             ).on(ClientEventType.RECEIVE_TRADE,
                 this.eventHandlerWrapper(playerKey, (e: ReceiveTradeEvent) => {
                     if (PLAYER_KEYS.every(
-                        k => this.gameState.currentGameRoundState.players[k].hasReceivedTrades
+                        k => this.gameState.currentRound.players[k].hasReceivedTrades
                     )) {
                         this.onAllTradesReceived();
                     }
@@ -141,25 +141,25 @@ export class GameSession {
                 })
             ).on(ClientEventType.PLAY_CARDS,
                 this.eventHandlerWrapper(playerKey, (e: PlayCardsEvent) => {
-                    this.gameState.currentGameRoundState.playCardsOrElseThrow(
+                    this.gameState.currentRound.playCardsOrElseThrow(
                         player, e.data.selectedCardKeys
                     );
                     const combType = 
-                        this.gameState.currentGameRoundState.tableState.currentCombination?.type;
+                        this.gameState.currentRound.table.currentCombination?.type;
                     if (!combType) throw new UnexpectedCombinationType (
                         'Unexpected Error: Table combination is null'
                     );
                     this.emitToNamespace<CardsPlayedEvent>({
                         playerKey: playerKey,
                         eventType: ServerEventType.CARDS_PLAYED,
-                        // TODO: Need to sync requested card state...
                         data: {
                             combinationType: combType,
                             numCardsRemainingInHand: player.getNumCards(),
-                            tableCardKeys: GameSession.mapCardsToKeys(player.getCards())
+                            tableCardKeys: GameSession.mapCardsToKeys(player.getCards()),
+                            requestedCardName: this.gameState.currentRound.table.requestedCardName,
                         }
                     });
-                    if (this.gameState.currentGameRoundState.mustEndGameRound()) {
+                    if (this.gameState.currentRound.mustEndGameRound()) {
                         const score = this.gameState.endGameRound();
                         this.emitToNamespace<GameRoundEndedEvent>({
                             playerKey: playerKey,
@@ -172,7 +172,7 @@ export class GameSession {
                 })
             ).on(ClientEventType.PASS_TURN,
                 this.eventHandlerWrapper(playerKey, (e: PassTurnEvent) => {
-                    this.gameState.currentGameRoundState.passTurnOrElseThrow(player);
+                    this.gameState.currentRound.passTurnOrElseThrow(player);
                     this.emitToNamespace<TurnPassedEvent>({
                         playerKey: playerKey,
                         eventType: ServerEventType.TURN_PASSED,
@@ -181,7 +181,7 @@ export class GameSession {
                 })
             ).on(ClientEventType.DROP_BOMB,
                 this.eventHandlerWrapper(playerKey, (e: DropBombEvent) => {
-                    this.gameState.currentGameRoundState.enablePendingBombOrElseThrow(player);
+                    this.gameState.currentRound.enablePendingBombOrElseThrow(player);
                     this.emitToNamespace<BombDroppedEvent>({
                         playerKey: playerKey,
                         eventType: ServerEventType.BOMB_DROPPED,
@@ -190,7 +190,7 @@ export class GameSession {
                 })
             ).on(ClientEventType.REQUEST_CARD,
                 this.eventHandlerWrapper(playerKey, (e: RequestCardEvent) => {
-                    this.gameState.currentGameRoundState.setRequestedCardOrElseThrow(player, e);
+                    this.gameState.currentRound.setRequestedCardOrElseThrow(player, e);
                     this.emitToNamespace<CardRequestedEvent>({
                         playerKey: playerKey,
                         eventType: ServerEventType.CARD_REQUESTED,
@@ -201,7 +201,7 @@ export class GameSession {
                 })
             ).on(ClientEventType.GIVE_DRAGON,
                 this.eventHandlerWrapper(playerKey, (e: GiveDragonEvent) => {
-                    this.gameState.currentGameRoundState.giveDragonOrElseThrow(player, e);
+                    this.gameState.currentRound.giveDragonOrElseThrow(player, e);
                     this.emitToNamespace<DragonGivenEvent>({
                         playerKey: playerKey,
                         eventType: ServerEventType.DRAGON_GIVEN,
@@ -293,7 +293,7 @@ export class GameSession {
 
     private startGame() {
         for (const key of PLAYER_KEYS) {
-            const player = this.gameState.currentGameRoundState.players[key];
+            const player = this.gameState.currentRound.players[key];
             this.emitEventByKey<GameRoundStartedEvent>(key, {
                 eventType: ServerEventType.GAME_ROUND_STARTED,
                 data: {
@@ -304,9 +304,9 @@ export class GameSession {
     }
 
     private onAllTradesCompleted() {
-        this.gameState.currentGameRoundState.makeCardTrades();
+        this.gameState.currentRound.makeCardTrades();
         for (const key of PLAYER_KEYS) {
-            const player = this.gameState.currentGameRoundState.players[key];
+            const player = this.gameState.currentRound.players[key];
             this.emitEventByKey<CardsTradedEvent>(key, {
                 eventType: ServerEventType.CARDS_TRADED,
                 data: {
@@ -322,7 +322,7 @@ export class GameSession {
         this.emitToNamespace<TableRoundStartedEvent>({
             eventType: ServerEventType.TABLE_ROUND_STARTED,
             data: {
-                currentPlayer: PLAYER_KEYS[this.gameState.currentGameRoundState.currentPlayerIndex]
+                currentPlayer: PLAYER_KEYS[this.gameState.currentRound.currentPlayerIndex]
             }
         })
     }

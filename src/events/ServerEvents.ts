@@ -54,6 +54,7 @@ export type CardsPlayedEvent = GameEvent<
         numCardsRemainingInHand: number,
         combinationType: CardCombinationType,
         tableCardKeys: CardKey[],
+        requestedCardName?: string,
     }
 >;
 
