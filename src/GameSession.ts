@@ -2,7 +2,7 @@ import { Namespace, Server, Socket } from "socket.io";
 import { GameClient } from "./GameClient";
 import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent, SessionClientEvent, PlayCardsEvent, PassTurnEvent, DropBombEvent, RequestCardEvent, GiveDragonEvent } from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
-import { AllCardsRevealedEvent, BetPlacedEvent, BombDroppedEvent, CardRequestedEvent, CardsPlayedEvent, CardsTradedEvent, DragonGivenEvent, ErrorEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, TurnPassedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
+import { AllCardsRevealedEvent, BetPlacedEvent, BombDroppedEvent, CardRequestedEvent, CardsPlayedEvent, CardsTradedEvent, DragonGivenEvent, ErrorEvent, GameRoundEndedEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, TurnPassedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
 import { CardInfo } from "./game_logic/CardInfo";
 import { BusinessError } from "./responses/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
@@ -152,12 +152,23 @@ export class GameSession {
                     this.emitToNamespace<CardsPlayedEvent>({
                         playerKey: playerKey,
                         eventType: ServerEventType.CARDS_PLAYED,
+                        // TODO: Need to sync requested card state...
                         data: {
                             combinationType: combType,
                             numCardsRemainingInHand: player.getNumCards(),
                             tableCardKeys: GameSession.mapCardsToKeys(player.getCards())
                         }
                     });
+                    if (this.gameState.currentGameRoundState.mustEndGameRound()) {
+                        const score = this.gameState.endGameRound();
+                        this.emitToNamespace<GameRoundEndedEvent>({
+                            playerKey: playerKey,
+                            eventType: ServerEventType.GAME_ROUND_ENDED,
+                            data: {
+                                roundScore: score
+                            }
+                        });
+                    }
                 })
             ).on(ClientEventType.PASS_TURN,
                 this.eventHandlerWrapper(playerKey, (e: PassTurnEvent) => {

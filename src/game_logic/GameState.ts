@@ -60,4 +60,10 @@ export class GameState {
             this.team13TotalPoints >= this.winningScore
         );
     }
+
+    endGameRound() {
+        const score = this.currentGameRoundState.endGameRoundOrElseThrow();
+        this.scoreHistory.push(score);
+        return score;
+    }
 }

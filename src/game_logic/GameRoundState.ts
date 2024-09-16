@@ -323,6 +323,8 @@ export class GameRoundState {
             throw new BusinessError(`It is not this player's turn.`);
         if (this.pendingBombToBePlayed)
             throw new BusinessError('A Bomb must be played.');
+        if (this.pendingDragonToBeGiven)
+            throw new BusinessError('Cannot pass during a pending dragon decision.');
         if (this.tableState.currentCombination === null)
             throw new BusinessError('The table round starter cannot pass.');
         if (this.tableState.requestedCardName === "") return;
@@ -385,24 +387,51 @@ export class GameRoundState {
     }
 
     enablePendingBombOrElseThrow(player: PlayerState) {
-        throw new Error('Method Not Implemented');
+        if (this.pendingBombToBePlayed)
+            throw new BusinessError('A pending Bomb is about to be played.');
+        if (this.pendingDragonToBeGiven)
+            throw new BusinessError('Cannot drop a Bomb during a pending dragon decision.');
+        const bomb = Bomb.getStrongestBomb(player.getCards());
+        if (bomb === null)
+            throw new BusinessError('This player has no possible bomb combinations');
+        if (this.tableState.currentCombination instanceof Bomb &&
+            Bomb.compareBombs(this.tableState.currentCombination, bomb) >= 0
+        )
+            throw new BusinessError(
+                'This player cannot play a Bomb on top of the current combination.'
+            );
+        this.pendingBombToBePlayed = true;
+        this.currentPlayerIndex = PLAYER_KEYS.indexOf(player.playerKey);
     }
 
     setRequestedCardOrElseThrow(player: PlayerState, e: RequestCardEvent) {
-        throw new Error('Method Not Implemented');
+        if (player.playerKey !== PLAYER_KEYS[this.currentPlayerIndex])
+            throw new BusinessError(`It is not this player's turn.`);
+        if (this.tableState.requestedCardName)
+            throw new BusinessError('A card has already been requested.');
+        if (!player.hasMahjong())
+            throw new BusinessError('Cannot request a card without owning Majong');
+        // TODO: what about this.pendingMahjongRequest?
+        this.tableState.requestedCardName = e.data.requestedCardName;
     }
 
     giveDragonOrElseThrow(player: PlayerState, e: GiveDragonEvent) {
-        throw new Error('Method Not Implemented');
-    }
-
-    /**
-     * Forces the on-table cards owner to choose an active opponent to hand the table cards to,
-     * by setting the Gameboard component state accordingly.
-     */
-    onPendingDragon() {
-        this.currentPlayerIndex = this.tableState.currentCardsOwnerIndex;
-        this.pendingDragonToBeGiven = true;
+        if (player.playerKey !== PLAYER_KEYS[this.currentPlayerIndex])
+            throw new BusinessError(`It is not this player's turn.`);
+        if (!this.pendingDragonToBeGiven)
+            throw new BusinessError('No pending dragon decision state stored.');
+        const chosenPlayer = this.players[e.data.chosenOponentKey];
+        if (!chosenPlayer)
+            throw new BusinessError('Invalid player key to give dragon to.');
+        chosenPlayer.addCardsToHeap(
+            ...this.tableState.currentCards,
+            ...this.tableState.currentCards
+        );
+        this.tableState.previousCards = [];
+        this.tableState.currentCards = [];
+        this.tableState.currentCardsOwnerIndex = -1;
+        this.tableState.currentCombination = null;
+        this.pendingDragonToBeGiven = false;
     }
 
     /**
@@ -415,7 +444,8 @@ export class GameRoundState {
     endTableRound() {
         // Preparing for new round
         if (this.tableState.currentCards[0].name === specialCards.DRAGON) {
-            this.onPendingDragon();
+            this.currentPlayerIndex = this.tableState.currentCardsOwnerIndex;
+            this.pendingDragonToBeGiven = true;
             return;
         }
         this.players[PLAYER_KEYS[this.tableState.currentCardsOwnerIndex]]
@@ -440,6 +470,12 @@ export class GameRoundState {
             return true;
         }
         return false;
+    }
+
+    endGameRoundOrElseThrow() {
+        if (!this.mustEndGameRound())
+            throw new BusinessError('Cannot end game round.');
+        return this.calculateGameRoundScore();
     }
 
     /**

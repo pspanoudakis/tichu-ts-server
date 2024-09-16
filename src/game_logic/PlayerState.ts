@@ -2,6 +2,7 @@ import { PlaceBetEvent, TradeCardsEvent } from "../events/ClientEvents";
 import { BusinessError } from "../responses/BusinessError";
 import { CardInfo, specialCards } from "./CardInfo";
 import { GameBet } from "./GameRoundState";
+import { PlayerKey } from "./GameState";
 
 export type PlayerTradeDecisions = {
     teammate: CardInfo,
@@ -10,7 +11,7 @@ export type PlayerTradeDecisions = {
 };
 
 export class PlayerState {
-    readonly playerKey: string;
+    readonly playerKey: PlayerKey;
     private _cards = new Map<string, CardInfo>();
     private _heap = Array<CardInfo>();
     private _bet = GameBet.NONE;
@@ -21,7 +22,7 @@ export class PlayerState {
     private _hasSentTrades = false;
     private _hasReceivedTrades = false;
 
-    constructor(playerKey: string) {
+    constructor(playerKey: PlayerKey) {
         this.playerKey = playerKey;
     }
 
