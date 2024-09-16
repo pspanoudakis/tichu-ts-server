@@ -1,3 +1,4 @@
+import { GiveDragonEvent, RequestCardEvent } from "../events/ClientEvents";
 import { BusinessError } from "../responses/BusinessError";
 import { 
     Bomb, 
@@ -381,6 +382,18 @@ export class GameRoundState {
             this.endTableRound();
         }
         this.currentPlayerIndex = nextPlayerIndex;
+    }
+
+    enablePendingBombOrElseThrow(player: PlayerState) {
+        throw new Error('Method Not Implemented');
+    }
+
+    setRequestedCardOrElseThrow(player: PlayerState, e: RequestCardEvent) {
+        throw new Error('Method Not Implemented');
+    }
+
+    giveDragonOrElseThrow(player: PlayerState, e: GiveDragonEvent) {
+        throw new Error('Method Not Implemented');
     }
 
     /**

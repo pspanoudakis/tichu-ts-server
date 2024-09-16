@@ -1,8 +1,8 @@
 import { Namespace, Server, Socket } from "socket.io";
 import { GameClient } from "./GameClient";
-import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent, SessionClientEvent, PlayCardsEvent, PassTurnEvent } from "./events/ClientEvents";
+import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent, SessionClientEvent, PlayCardsEvent, PassTurnEvent, DropBombEvent, RequestCardEvent, GiveDragonEvent } from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
-import { AllCardsRevealedEvent, BetPlacedEvent, CardsPlayedEvent, CardsTradedEvent, ErrorEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, TurnPassedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
+import { AllCardsRevealedEvent, BetPlacedEvent, BombDroppedEvent, CardRequestedEvent, CardsPlayedEvent, CardsTradedEvent, DragonGivenEvent, ErrorEvent, GameRoundStartedEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, TurnPassedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
 import { CardInfo } from "./game_logic/CardInfo";
 import { BusinessError } from "./responses/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
@@ -166,6 +166,37 @@ export class GameSession {
                         playerKey: playerKey,
                         eventType: ServerEventType.TURN_PASSED,
                         data: undefined,
+                    })
+                })
+            ).on(ClientEventType.DROP_BOMB,
+                this.eventHandlerWrapper(playerKey, (e: DropBombEvent) => {
+                    this.gameState.currentGameRoundState.enablePendingBombOrElseThrow(player);
+                    this.emitToNamespace<BombDroppedEvent>({
+                        playerKey: playerKey,
+                        eventType: ServerEventType.BOMB_DROPPED,
+                        data: undefined,
+                    })
+                })
+            ).on(ClientEventType.REQUEST_CARD,
+                this.eventHandlerWrapper(playerKey, (e: RequestCardEvent) => {
+                    this.gameState.currentGameRoundState.setRequestedCardOrElseThrow(player, e);
+                    this.emitToNamespace<CardRequestedEvent>({
+                        playerKey: playerKey,
+                        eventType: ServerEventType.CARD_REQUESTED,
+                        data: {
+                            requestedCardName: e.data.requestedCardName
+                        },
+                    })
+                })
+            ).on(ClientEventType.GIVE_DRAGON,
+                this.eventHandlerWrapper(playerKey, (e: GiveDragonEvent) => {
+                    this.gameState.currentGameRoundState.giveDragonOrElseThrow(player, e);
+                    this.emitToNamespace<DragonGivenEvent>({
+                        playerKey: playerKey,
+                        eventType: ServerEventType.DRAGON_GIVEN,
+                        data: {
+                            dragonReceiverKey: e.data.chosenOponentKey
+                        },
                     })
                 })
             );
