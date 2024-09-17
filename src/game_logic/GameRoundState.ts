@@ -12,6 +12,7 @@ import { CardInfo, specialCards } from "./CardInfo";
 import { Deck } from "./Deck";
 import { PLAYER_KEYS, PlayerKey, RoundScore } from "./GameState";
 import { PlayerState } from "./PlayerState";
+import { TableState } from "./TableState";
 
 /** Possible player bet points */
 export enum GameBet {
@@ -24,21 +25,6 @@ class PlayerCards {
     player2 = Array<CardInfo>();
     player3 = Array<CardInfo>();
     player4 = Array<CardInfo>();
-}
-
-class TableState {
-    previousCards: Array<CardInfo> = [];
-    currentCards: Array<CardInfo> = [];
-    currentCombination: CardCombination | null = null;
-    currentCardsOwnerIndex: number = -1;
-    requestedCardName: string = '';
-
-    endTableRound() {
-        this.previousCards = [];
-        this.currentCards = [];
-        this.currentCombination = null;
-        this.currentCardsOwnerIndex = -1;
-    }
 }
 
 export class GameRoundState {
