@@ -65,21 +65,12 @@ export class GameSession {
             const player = this.gameState.currentRound.players[playerKey];
             socket.on('disconnect', (reason) => {
                 console.warn(`Player: '${playerKey}' disconnected: ${reason}`);
-                switch (this.gameState.status) {
-                    case 'IN_PROGRESS':
-                        // End game due to disconnection
-                        break;
-                    case 'INIT':
-                        this.clients[playerKey] = null;
-                        if (client.hasJoinedGame) {
-                            this.emitToNamespace<PlayerLeftEvent>({
-                                eventType: ServerEventType.PLAYER_LEFT,
-                                playerKey: playerKey,
-                                data: undefined,
-                            });                            
-                        }
-                    default:
-                        break;
+                try {
+                    this.gameState.onPlayerLeft(playerKey);                    
+                } catch (error) {
+                    console.error(
+                        `Error during client disconnection: ${error?.toString()}`
+                    );
                 }
             }).on(ClientEventType.JOIN_GAME, (e: JoinGameEvent) => {
                 try {
@@ -313,6 +304,7 @@ export class GameSession {
     }
 
     private startGame() {
+        this.gameState.startGame();
         for (const key of PLAYER_KEYS) {
             const player = this.gameState.currentRound.players[key];
             this.emitEventByKey<GameRoundStartedEvent>(key, {
