@@ -110,8 +110,7 @@ export type TableRoundStartedEvent = GameEvent<
 
 export type TableRoundEndedEvent = GameEvent<
     ServerEventType.TABLE_ROUND_ENDED, {
-        roundWinner: PlayerKey,
-        currentPlayer: PlayerKey,
+        roundWinner: PlayerKey
     }
 >;
 

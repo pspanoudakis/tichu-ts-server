@@ -33,12 +33,11 @@ class TableState {
     currentCardsOwnerIndex: number = -1;
     requestedCardName: string = '';
 
-    endTableRound(requestedCardName?: string) {
+    endTableRound() {
         this.previousCards = [];
         this.currentCards = [];
         this.currentCombination = null;
         this.currentCardsOwnerIndex = -1;
-        this.requestedCardName = requestedCardName ?? '';
     }
 }
 

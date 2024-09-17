@@ -32,6 +32,7 @@ import {
     PlayerJoinedEvent,
     PlayerLeftEvent,
     ServerEventType,
+    TableRoundEndedEvent,
     TableRoundStartedEvent,
     TurnPassedEvent,
     WaitingForJoinEvent
@@ -132,7 +133,8 @@ export class GameSession {
                     }
                 );
                 if (PLAYER_KEYS.every(k => this.clients[k]?.hasJoinedGame)) {
-                    this.startGame();
+                    this.gameState.startGame();
+                    this.onGameRoundStarted();
                 }
             }).on(ClientEventType.PLACE_BET,
                 this.eventHandlerWrapper(playerKey, (e: PlaceBetEvent) => {
@@ -171,7 +173,7 @@ export class GameSession {
                     if (PLAYER_KEYS.every(
                         k => this.gameState.currentRound.players[k].hasReceivedTrades
                     )) {
-                        this.onAllTradesReceived();
+                        this.onTableRoundStarted();
                     }
         
                 })
@@ -207,12 +209,15 @@ export class GameSession {
                         });
                         this.onGamePossiblyOver();
                         if (!this.gameState.isGameOver) {
-                            this.gameState.endGameRound();
+                            this.gameState.startNewRound();
+                            this.onGameRoundStarted();
                         } 
                     }
                 })
             ).on(ClientEventType.PASS_TURN,
                 this.eventHandlerWrapper(playerKey, (e: PassTurnEvent) => {
+                    const cardsOwnerIdx =
+                        this.gameState.currentRound.table.currentCardsOwnerIndex;
                     this.gameState.currentRound
                         .passTurnOrElseThrow(this.getPlayer(playerKey));
                     this.emitToNamespace<TurnPassedEvent>({
@@ -225,6 +230,14 @@ export class GameSession {
                             eventType: ServerEventType.PENDING_DRAGON_DECISION,
                             data: undefined
                         })
+                    } else if (!this.gameState.currentRound.table.currentCombination) {
+                        this.emitToNamespace<TableRoundEndedEvent>({
+                            eventType: ServerEventType.TABLE_ROUND_ENDED,
+                            data: {
+                                roundWinner: PLAYER_KEYS[cardsOwnerIdx]
+                            }
+                        });
+                        this.onTableRoundStarted();
                     }
                 })
             ).on(ClientEventType.DROP_BOMB,
@@ -363,14 +376,14 @@ export class GameSession {
         socketToExclude.broadcast.emit(e.eventType, e);
     }
 
-    private startGame() {
-        this.gameState.startGame();
+    private onGameRoundStarted() {
         for (const key of PLAYER_KEYS) {
             const player = this.gameState.currentRound.players[key];
             this.emitEventByKey<GameRoundStartedEvent>(key, {
                 eventType: ServerEventType.GAME_ROUND_STARTED,
                 data: {
-                    partialCards: GameSession.mapCardsToKeys(player.getRevealedCards())
+                    partialCards:
+                        GameSession.mapCardsToKeys(player.getRevealedCards())
                 },
             });
         }
@@ -391,11 +404,13 @@ export class GameSession {
         }
     }
 
-    private onAllTradesReceived() {
+    private onTableRoundStarted() {
         this.emitToNamespace<TableRoundStartedEvent>({
             eventType: ServerEventType.TABLE_ROUND_STARTED,
             data: {
-                currentPlayer: PLAYER_KEYS[this.gameState.currentRound.currentPlayerIndex]
+                currentPlayer: PLAYER_KEYS[
+                    this.gameState.currentRound.currentPlayerIndex
+                ]
             }
         })
     }
