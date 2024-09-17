@@ -1,8 +1,41 @@
 import { Namespace, Server, Socket } from "socket.io";
 import { GameClient } from "./GameClient";
-import { JoinGameEvent, CreateRoomEvent, ClientEventType, PlaceBetEvent, RevealAllCardsEvent, TradeCardsEvent, ReceiveTradeEvent, SessionClientEvent, PlayCardsEvent, PassTurnEvent, DropBombEvent, RequestCardEvent, GiveDragonEvent } from "./events/ClientEvents";
+import {
+    JoinGameEvent,
+    CreateRoomEvent,
+    ClientEventType,
+    PlaceBetEvent,
+    RevealAllCardsEvent,
+    TradeCardsEvent,
+    ReceiveTradeEvent,
+    SessionClientEvent,
+    PlayCardsEvent,
+    PassTurnEvent,
+    DropBombEvent,
+    RequestCardEvent,
+    GiveDragonEvent
+} from "./events/ClientEvents";
 import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
-import { AllCardsRevealedEvent, BetPlacedEvent, BombDroppedEvent, CardRequestedEvent, CardsPlayedEvent, CardsTradedEvent, DragonGivenEvent, ErrorEvent, GameEndedEvent, GameRoundEndedEvent, GameRoundStartedEvent, PendingDragonDecisionEvent, PlayerJoinedEvent, PlayerLeftEvent, ServerEventType, TableRoundStartedEvent, TurnPassedEvent, WaitingForJoinEvent } from "./events/ServerEvents";
+import {
+    AllCardsRevealedEvent,
+    BetPlacedEvent,
+    BombDroppedEvent,
+    CardRequestedEvent,
+    CardsPlayedEvent,
+    CardsTradedEvent,
+    DragonGivenEvent,
+    ErrorEvent,
+    GameEndedEvent,
+    GameRoundEndedEvent,
+    GameRoundStartedEvent,
+    PendingDragonDecisionEvent,
+    PlayerJoinedEvent,
+    PlayerLeftEvent,
+    ServerEventType,
+    TableRoundStartedEvent,
+    TurnPassedEvent,
+    WaitingForJoinEvent
+} from "./events/ServerEvents";
 import { CardInfo } from "./game_logic/CardInfo";
 import { BusinessError } from "./responses/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
@@ -26,13 +59,13 @@ type CustomSocket = Socket<
 export class GameSession {
     readonly id: string;
 
-    sessionNamespace: Namespace<
+    private sessionNamespace: Namespace<
         DefaultEventsMap,
         DefaultEventsMap,
         DefaultEventsMap,
         CustomSocketData
     >;
-    clients: {
+    private clients: {
         [playerKey in PlayerKey]: GameClient | null;
     } = {
         player1: null,
@@ -40,7 +73,7 @@ export class GameSession {
         player3: null,
         player4: null,
     };
-    gameState: GameState;
+    private gameState: GameState;
 
     // expectedEvents = new Set<ClientEventType>([ClientEventType.JOIN_GAME]);
 
@@ -49,10 +82,13 @@ export class GameSession {
         this.gameState = new GameState(event.data.winningScore);
         this.sessionNamespace = socketServer.of(`/${sessionId}`);
         this.sessionNamespace.use((_, next) => {
-            // Maybe add auth here
+            // Maybe add auth here?
             next();
         }).on('connection', (socket) => {
-            if(socket.recovered) return;
+            if(socket.recovered) {
+                // Emit data sync event to socket?
+                return;
+            };
             const playerKey = PLAYER_KEYS.find(key => this.clients[key] === null);
             if (!playerKey) {
                 // Session full, reject connection
@@ -62,11 +98,19 @@ export class GameSession {
             const client = new GameClient(playerKey);
             socket.data.playerKey = playerKey;
             this.clients[playerKey] = client;
-            const player = this.gameState.currentRound.players[playerKey];
             socket.on('disconnect', (reason) => {
                 console.warn(`Player: '${playerKey}' disconnected: ${reason}`);
                 try {
-                    this.gameState.onPlayerLeft(playerKey);                    
+                    this.gameState.onPlayerLeft(playerKey);
+                    this.clients[playerKey] = null;
+                    if (client.hasJoinedGame) {
+                        this.emitToNamespace<PlayerLeftEvent>({
+                            eventType: ServerEventType.PLAYER_LEFT,
+                            playerKey: playerKey,
+                            data: undefined,
+                        });
+                        this.onGamePossiblyOver();
+                    }      
                 } catch (error) {
                     console.error(
                         `Error during client disconnection: ${error?.toString()}`
@@ -92,7 +136,7 @@ export class GameSession {
                 }
             }).on(ClientEventType.PLACE_BET,
                 this.eventHandlerWrapper(playerKey, (e: PlaceBetEvent) => {
-                    player.placeBetOrElseThrow(e);
+                    this.getPlayer(playerKey).placeBetOrElseThrow(e);
                     this.emitToNamespace<BetPlacedEvent>({
                         eventType: ServerEventType.BET_PLACED,
                         playerKey: playerKey,
@@ -103,17 +147,19 @@ export class GameSession {
                 })
             ).on(ClientEventType.REVEAL_ALL_CARDS,
                 this.eventHandlerWrapper(playerKey, (e: RevealAllCardsEvent) => {
-                    player.revealCardsOrElseThrow();
+                    this.getPlayer(playerKey).revealCardsOrElseThrow();
                     GameSession.emitEvent<AllCardsRevealedEvent>(socket, {
                         eventType: ServerEventType.ALL_CARDS_REVEALED,
                         data: {
-                            cards: GameSession.mapCardsToKeys(player.getRevealedCards()),
+                            cards: GameSession.mapCardsToKeys(
+                                this.getPlayer(playerKey).getRevealedCards()
+                            ),
                         }
                     });
                 })
             ).on(ClientEventType.TRADE_CARDS,
                 this.eventHandlerWrapper(playerKey, (e: TradeCardsEvent) => {
-                    player.finalizeTradesOrElseThrow(e);
+                    this.getPlayer(playerKey).finalizeTradesOrElseThrow(e);
                     if (PLAYER_KEYS.every(
                         k => this.gameState.currentRound.players[k].hasSentTrades
                     )) {
@@ -131,6 +177,7 @@ export class GameSession {
                 })
             ).on(ClientEventType.PLAY_CARDS,
                 this.eventHandlerWrapper(playerKey, (e: PlayCardsEvent) => {
+                    const player = this.getPlayer(playerKey);
                     this.gameState.currentRound.playCardsOrElseThrow(
                         player, e.data.selectedCardKeys
                     );
@@ -153,29 +200,21 @@ export class GameSession {
                     if (this.gameState.currentRound.mustEndGameRound()) {
                         const score = this.gameState.endGameRound();
                         this.emitToNamespace<GameRoundEndedEvent>({
-                            playerKey: playerKey,
                             eventType: ServerEventType.GAME_ROUND_ENDED,
                             data: {
                                 roundScore: score
                             }
                         });
-                        if (this.gameState.isGameOver) {
-                            this.emitToNamespace<GameEndedEvent>({
-                                playerKey: playerKey,
-                                eventType: ServerEventType.GAME_ENDED,
-                                data: {
-                                    result: this.gameState.result,
-                                    team02TotalScore: this.gameState.team02TotalPoints,
-                                    team13TotalScore: this.gameState.team13TotalPoints,
-                                    scores: this.gameState.scoreHistory,
-                                }
-                            });
-                        }
+                        this.onGamePossiblyOver();
+                        if (!this.gameState.isGameOver) {
+                            this.gameState.endGameRound();
+                        } 
                     }
                 })
             ).on(ClientEventType.PASS_TURN,
                 this.eventHandlerWrapper(playerKey, (e: PassTurnEvent) => {
-                    this.gameState.currentRound.passTurnOrElseThrow(player);
+                    this.gameState.currentRound
+                        .passTurnOrElseThrow(this.getPlayer(playerKey));
                     this.emitToNamespace<TurnPassedEvent>({
                         playerKey: playerKey,
                         eventType: ServerEventType.TURN_PASSED,
@@ -190,7 +229,8 @@ export class GameSession {
                 })
             ).on(ClientEventType.DROP_BOMB,
                 this.eventHandlerWrapper(playerKey, (e: DropBombEvent) => {
-                    this.gameState.currentRound.enablePendingBombOrElseThrow(player);
+                    this.gameState.currentRound
+                        .enablePendingBombOrElseThrow(this.getPlayer(playerKey));
                     this.emitToNamespace<BombDroppedEvent>({
                         playerKey: playerKey,
                         eventType: ServerEventType.BOMB_DROPPED,
@@ -199,7 +239,8 @@ export class GameSession {
                 })
             ).on(ClientEventType.REQUEST_CARD,
                 this.eventHandlerWrapper(playerKey, (e: RequestCardEvent) => {
-                    this.gameState.currentRound.setRequestedCardOrElseThrow(player, e);
+                    this.gameState.currentRound
+                        .setRequestedCardOrElseThrow(this.getPlayer(playerKey), e);
                     this.emitToNamespace<CardRequestedEvent>({
                         playerKey: playerKey,
                         eventType: ServerEventType.CARD_REQUESTED,
@@ -210,7 +251,8 @@ export class GameSession {
                 })
             ).on(ClientEventType.GIVE_DRAGON,
                 this.eventHandlerWrapper(playerKey, (e: GiveDragonEvent) => {
-                    this.gameState.currentRound.giveDragonOrElseThrow(player, e);
+                    this.gameState.currentRound
+                        .giveDragonOrElseThrow(this.getPlayer(playerKey), e);
                     this.emitToNamespace<DragonGivenEvent>({
                         playerKey: playerKey,
                         eventType: ServerEventType.DRAGON_GIVEN,
@@ -232,6 +274,24 @@ export class GameSession {
                 },
             });
         });
+    }
+
+    private getPlayer(playerKey: PlayerKey) {
+        return this.gameState.currentRound.players[playerKey];
+    }
+
+    private onGamePossiblyOver() {
+        if (this.gameState.isGameOver) {
+            this.emitToNamespace<GameEndedEvent>({
+                eventType: ServerEventType.GAME_ENDED,
+                data: {
+                    result: this.gameState.result,
+                    team02TotalScore: this.gameState.team02TotalPoints,
+                    team13TotalScore: this.gameState.team13TotalPoints,
+                    scores: this.gameState.scoreHistory,
+                }
+            });
+        }
     }
 
     private static emitError(socket: CustomSocket, error: any) {

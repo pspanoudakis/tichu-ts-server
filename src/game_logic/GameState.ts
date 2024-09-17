@@ -107,6 +107,15 @@ export class GameState {
         return score;
     }
 
+    startNewRound() {
+        if (!this.currentRound.isOver) {
+            throw new BusinessError(
+                `The current round has not been completed yet.`
+            );
+        }
+        this.currentRound = new GameRoundState();
+    }
+
     onPlayerLeft(playerKey: PlayerKey) {
         switch (this._status) {
             case GameStatus.INIT:
@@ -121,6 +130,7 @@ export class GameState {
                         `Unexpected player key on disconnected player: ${playerKey}`
                     );
                 }
+                this._status = GameStatus.OVER;
                 break;        
             default:
                 throw new Error(

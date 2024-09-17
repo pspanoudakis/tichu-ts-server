@@ -57,9 +57,14 @@ export class GameRoundState {
     pendingBombToBePlayed = false;
     table: TableState = new TableState();
     gameRoundWinnerKey: PlayerKey | '' = '';
+    private _isOver = false;
 
     constructor() {
         this.handCards();
+    }
+
+    get isOver() {
+        return this._isOver;
     }
 
     /**
@@ -475,6 +480,7 @@ export class GameRoundState {
     endGameRoundOrElseThrow() {
         if (!this.mustEndGameRound())
             throw new BusinessError('Cannot end game round.');
+        this._isOver = true;
         return this.calculateGameRoundScore();
     }
 
