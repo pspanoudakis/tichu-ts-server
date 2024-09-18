@@ -26,6 +26,7 @@ import { BusinessError } from "./responses/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 import { PLAYER_KEYS, PlayerKey } from "./game_logic/PlayerState";
 import { GameEvent } from "./events/GameEvent";
+import { ChatMessage } from "./ChatMessage";
 
 export type EventBase = GameEvent<any, any>;
 
@@ -66,11 +67,7 @@ export class GameSession {
     };
     private gameState: GameState;
 
-    private chatMessages = new Array<{
-        text: string,
-        sentBy: string,
-        sentOn: Date
-    }>();
+    private chatMessages = new Array<ChatMessage>();
 
     constructor(sessionId: string, socketServer: CustomServer, event: CreateRoomEvent) {
         this.id = sessionId;
@@ -157,16 +154,12 @@ export class GameSession {
                 })
             ).on(ClientEventType.SEND_MESSAGE,
                 this.eventHandlerWrapper(client, (e: SendMessageEvent) => {
-                    const msg = {
-                        sentBy: client.nickname,
-                        sentOn: new Date(),
-                        text: e.data.text,
-                    };
+                    const msg = new ChatMessage(playerKey, e.data.text);
                     this.chatMessages.push(msg);
                     this.emitToNamespace<MessageSentEvent>({
                         playerKey,
                         eventType: ServerEventType.MESSAGE_SENT,
-                        data: msg
+                        data: msg.toJSON(),
                     });
                 })
             );

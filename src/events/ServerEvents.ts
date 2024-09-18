@@ -99,7 +99,7 @@ export type CardRequestedEvent = GameEvent<
 export type MessageSentEvent = GameEvent<
     ServerEventType.MESSAGE_SENT, {
         sentBy: string,
-        sentOn: Date,
+        sentOn: string,
         text: string,
     }
 >;
