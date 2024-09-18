@@ -42,15 +42,15 @@ export enum CardCombinationType {
 export abstract class CardCombination {
 
     /** The combination type (see {@link CardCombinationType}) */
-    combination: string;
+    type: CardCombinationType;
     /** The number of cards in the combination */
     length: number;
     /** The value of the top card in the combination */
     value: any;
 
     /** Creates a `CardCombination` with the given information. */
-    constructor(combination: string, len: number, val: any) {
-        this.combination = combination;
+    constructor(combination: CardCombinationType, len: number, val: any) {
+        this.type = combination;
         this.length = len;
         this.value = val;
     }

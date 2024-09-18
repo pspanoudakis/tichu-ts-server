@@ -1,5 +1,3 @@
-import { cardImages } from "./CardResources";
-
 /** Possible card colors. */
 export const cardColors = {
     BLACK: 'black',
@@ -113,7 +111,7 @@ export class CardInfo {
     /**
      * Returns the total points of the specified cards.
      */
-    static evaluatePoints(cards: Array<CardInfo>) {
+    static evaluatePoints(cards: readonly CardInfo[]) {
         let points = 0;
         for (const card of cards) {
             switch (card.name) {

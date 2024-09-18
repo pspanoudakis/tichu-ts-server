@@ -19,7 +19,7 @@ export class Deck {
                 this.cards.push(new CardInfo(i.toString(), color));
             }
         }
-        for (const letter of Object.keys(letterValues)) {
+        for (const letter of letterValues.keys()) {
             for (const color of Object.values(cardColors)) {
                 this.cards.push(new CardInfo(letter, color));
             }
