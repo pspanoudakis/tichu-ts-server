@@ -15,7 +15,7 @@ import {
     RequestCardEvent,
     GiveDragonEvent
 } from "./events/ClientEvents";
-import { GameState, PLAYER_KEYS, PlayerKey } from "./game_logic/GameState";
+import { GameState } from "./game_logic/GameState";
 import {
     ErrorEvent,
     ServerEventType,
@@ -23,6 +23,7 @@ import {
 } from "./events/ServerEvents";
 import { BusinessError } from "./responses/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
+import { PLAYER_KEYS, PlayerKey } from "./game_logic/PlayerState";
 
 export type EventBase = {
     eventType: string
@@ -57,8 +58,6 @@ export class GameSession {
         player4: null,
     };
     private gameState: GameState;
-
-    // expectedEvents = new Set<ClientEventType>([ClientEventType.JOIN_GAME]);
 
     constructor(sessionId: string, socketServer: Server, event: CreateRoomEvent) {
         this.id = sessionId;
@@ -180,8 +179,6 @@ export class GameSession {
     ) {
         return (event: SessionClientEvent<T, D>) => {
             try {
-                // if (!this.expectedEvents.has(event.eventType))
-                //     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
                 if (!this.clients[playerKey]?.hasJoinedGame)
                     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
                 eventHandler(event);
@@ -202,13 +199,11 @@ export class GameSession {
         this.sessionNamespace.emit(e.eventType, e);
     }
 
-    private emitEventByKey<T extends EventBase>
-    (playerKey: PlayerKey, e: T) {
+    private emitEventByKey<T extends EventBase>(playerKey: PlayerKey, e: T) {
         this.getSocketByPlayerKey(playerKey)?.emit(e.eventType, e);
     }
     
-    private static emitEvent<T extends EventBase>
-    (socket: CustomSocket, e: T) {
+    private static emitEvent<T extends EventBase>(socket: CustomSocket, e: T) {
         socket.emit(e.eventType, e);
     }
 

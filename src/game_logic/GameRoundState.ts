@@ -10,8 +10,8 @@ import {
 } from "./CardCombinations";
 import { CardInfo, specialCards } from "./CardInfo";
 import { Deck } from "./Deck";
-import { PLAYER_KEYS, PlayerKey, RoundScore } from "./GameState";
-import { PlayerState } from "./PlayerState";
+import { RoundScore } from "./GameState";
+import { PLAYER_KEYS, PlayerKey, PlayerState } from "./PlayerState";
 
 /** Possible player bet points */
 export enum GameBet {
@@ -408,8 +408,13 @@ export class GameRoundState {
             throw new BusinessError(
                 'This player cannot play a Bomb on top of the current combination.'
             );
+        const playerIdx = PLAYER_KEYS.indexOf(player.playerKey);
+        if (this.table.currentCombination === null && this._currentPlayerIndex !== playerIdx)
+            throw new BusinessError(
+                'This player cannot stop the game to play a bomb at this point.'
+            );
         this.pendingBombToBePlayed = true;
-        this._currentPlayerIndex = PLAYER_KEYS.indexOf(player.playerKey);
+        this._currentPlayerIndex = playerIdx;
     }
 
     setRequestedCardOrElseThrow(player: PlayerState, e: RequestCardEvent) {

@@ -33,47 +33,21 @@ import { EventBase } from "../GameSession";
 import { BusinessError } from "../responses/BusinessError";
 import { UnexpectedCombinationType } from "./CardCombinations";
 import { CardInfo } from "./CardInfo";
-import { GameRoundState } from "./GameRoundState"; 
-import { GameWinnerResult } from "./GameWinnerResult";
+import { GameRoundState } from "./GameRoundState";
+import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS, TeamKey } from "./PlayerState";
 
-const _PLAYER_KEYS = {
-    PLAYER1: 'player1',
-    PLAYER2: 'player2',
-    PLAYER3: 'player3',
-    PLAYER4: 'player4',
-} as const;
-
-export type PlayerKey = typeof _PLAYER_KEYS[keyof typeof _PLAYER_KEYS];
-
-const TEAM_KEYS = {
-    TEAM_02: 'TEAM_02',
-    TEAM_13: 'TEAM_13',
-} as const;
-
-export type TeamKey = typeof TEAM_KEYS[keyof typeof TEAM_KEYS];
-
-export enum GameStatus{
+enum GameStatus {
     INIT = 'INIT',
     IN_PROGRESS = 'IN_PROGRESS',
     OVER = 'OVER'
 }
 
-export const TEAM_PLAYERS = {
-    [TEAM_KEYS.TEAM_02]: [_PLAYER_KEYS.PLAYER1, _PLAYER_KEYS.PLAYER3],
-    [TEAM_KEYS.TEAM_13]: [_PLAYER_KEYS.PLAYER2, _PLAYER_KEYS.PLAYER4],
-} as const;
-
-export const PLAYER_KEYS = [
-    _PLAYER_KEYS.PLAYER1,
-    _PLAYER_KEYS.PLAYER2,
-    _PLAYER_KEYS.PLAYER3,
-    _PLAYER_KEYS.PLAYER4
-] as const;
-
 export class RoundScore {
     team02 = 0;
     team13 = 0;
 }
+
+export type GameWinnerResult = TeamKey | 'TIE';
 
 type PlayerEventEmitter =
     <T extends EventBase>(playerKey: PlayerKey, e: T) => void;
@@ -82,21 +56,23 @@ type GlobalEventEmitter =
 
 export class GameState {
     private _result?: GameWinnerResult;
-    private _scoreHistory = Array<RoundScore>();
-    private _team02TotalPoints = 0;
-    private _team13TotalPoints = 0;
+    private scoreHistory = Array<RoundScore>();
+    private team02TotalPoints = 0;
+    private team13TotalPoints = 0;
     readonly winningScore: number;
-    private _status: GameStatus = GameStatus.INIT;
+    private status: GameStatus = GameStatus.INIT;
     private currentRound = new GameRoundState();
-    private _playerEventEmitter?: PlayerEventEmitter;
-    private _globalEventEmitter?: GlobalEventEmitter;
+    private emitToPlayer: PlayerEventEmitter;
+    private emitToAll: GlobalEventEmitter;
 
     constructor(
         winningScore: number = 1,
-        _playerEventEmitter: <T extends EventBase>(playerKey: PlayerKey, e: T) => void,
-        _globalEventEmitter: <T extends EventBase>(e: T) => void
+        playerEventEmitter: <T extends EventBase>(playerKey: PlayerKey, e: T) => void,
+        globalEventEmitter: <T extends EventBase>(e: T) => void
     ) {
         this.winningScore = winningScore;
+        this.emitToPlayer = playerEventEmitter;
+        this.emitToAll = globalEventEmitter;
     }
 
     get result() {
@@ -105,36 +81,8 @@ export class GameState {
         return this._result;
     }
 
-    get scoreHistory(): readonly RoundScore[] {
-        return this._scoreHistory;
-    }
-
-    get team02TotalPoints() {
-        return this._team02TotalPoints;
-    }
-
-    get team13TotalPoints() {
-        return this._team13TotalPoints;
-    }
-
     get isGameOver() {
-        return this._status === GameStatus.OVER;
-    }
-
-    get status() {
-        return this._status;
-    }
-
-    get emitToPlayer() {
-        if (!this._playerEventEmitter)
-            throw new Error('Player Emitter not set.');
-        return this._playerEventEmitter;
-    }
-
-    get emitToAll() {
-        if (!this._globalEventEmitter)
-            throw new Error('Global Emitter not set.');
-        return this._globalEventEmitter;
+        return this.status === GameStatus.OVER;
     }
 
     private getPlayer(playerKey: PlayerKey) {
@@ -143,27 +91,6 @@ export class GameState {
 
     private static mapCardsToKeys(cards: CardInfo[]) {
         return cards.map(c => c.key);
-    }
-
-    private startGame() {
-        if (this._status === GameStatus.IN_PROGRESS)
-            throw new BusinessError('Game already started.');
-        this._status = GameStatus.IN_PROGRESS;
-    }
-
-    private onAllTradesCompleted() {
-        this.currentRound.makeCardTrades();
-        for (const key of PLAYER_KEYS) {
-            const player = this.currentRound.players[key];
-            this.emitToPlayer<CardsTradedEvent>(key, {
-                eventType: ServerEventType.CARDS_TRADED,
-                data: {
-                    cardByTeammate: player.incomingTrades.teammate.key,
-                    cardByLeft: player.incomingTrades.left.key,
-                    cardByRight: player.incomingTrades.right.key,
-                },
-            })
-        }
     }
 
     /**
@@ -176,16 +103,16 @@ export class GameState {
                 this.winningScore === 0 &&
                 this.currentRound.mustEndGameRound()
             ) ||
-            this._team02TotalPoints >= this.winningScore ||
-            this._team13TotalPoints >= this.winningScore
+            this.team02TotalPoints >= this.winningScore ||
+            this.team13TotalPoints >= this.winningScore
         );
     }
 
     private endGameRound() {
         const score = this.currentRound.endGameRoundOrElseThrow();
-        this._scoreHistory.push(score);
-        this._team02TotalPoints += score.team02;
-        this._team13TotalPoints += score.team13;
+        this.scoreHistory.push(score);
+        this.team02TotalPoints += score.team02;
+        this.team13TotalPoints += score.team13;
         if(this.mustEndGame()) {
             if (score.team02 > score.team13) {
                 this._result = TEAM_KEYS.TEAM_02;
@@ -194,18 +121,9 @@ export class GameState {
             } else {
                 this._result = 'TIE';
             }
-            this._status = GameStatus.OVER;
+            this.status = GameStatus.OVER;
         }
         return score;
-    }
-
-    private startNewRound() {
-        if (!this.currentRound.isOver) {
-            throw new BusinessError(
-                `The current round has not been completed yet.`
-            );
-        }
-        this.currentRound = new GameRoundState();
     }
 
     private onGameRoundStarted() {
@@ -247,6 +165,8 @@ export class GameState {
     }
 
     onPlayerJoined(playerKey: PlayerKey, e: JoinGameEvent, startGame = false) {
+        if (this.status === GameStatus.IN_PROGRESS)
+            throw new BusinessError('Game already started.');
         this.emitToAll<PlayerJoinedEvent>({
             eventType: ServerEventType.PLAYER_JOINED,
             playerKey: playerKey,
@@ -255,30 +175,30 @@ export class GameState {
             }
         });
         if (startGame) {
-            this.startGame();
+            this.status = GameStatus.IN_PROGRESS;
             this.onGameRoundStarted();
         }
     }    
 
     onPlayerLeft(playerKey: PlayerKey, notifyOthers = false) {
-        switch (this._status) {
+        switch (this.status) {
             case GameStatus.INIT:
                 break;
             case GameStatus.IN_PROGRESS:
-                if (TEAM_KEYS['TEAM_02'].includes(playerKey)) {
+                if (TEAM_PLAYERS['TEAM_02'].includes(playerKey)) {
                     this._result = "TEAM_13";
-                } else if (TEAM_KEYS['TEAM_13'].includes(playerKey)) {
+                } else if (TEAM_PLAYERS['TEAM_13'].includes(playerKey)) {
                     this._result = "TEAM_02";
                 } else {
                     throw new Error(
                         `Unexpected player key on disconnected player: ${playerKey}`
                     );
                 }
-                this._status = GameStatus.OVER;
+                this.status = GameStatus.OVER;
                 break;        
             default:
                 throw new Error(
-                    `Unexpected game status during client disconnection: ${this._status}`
+                    `Unexpected game status during client disconnection: ${this.status}`
                 );
         }
         if (notifyOthers) {
@@ -322,7 +242,7 @@ export class GameState {
             });
             this.onGamePossiblyOver();
             if (!this.isGameOver) {
-                this.startNewRound();
+                this.currentRound = new GameRoundState();
                 this.onGameRoundStarted();
             } 
         }
@@ -382,7 +302,18 @@ export class GameState {
         if (PLAYER_KEYS.every(
             k => this.currentRound.players[k].hasSentTrades
         )) {
-            this.onAllTradesCompleted();
+            this.currentRound.makeCardTrades();
+            for (const key of PLAYER_KEYS) {
+                const player = this.currentRound.players[key];
+                this.emitToPlayer<CardsTradedEvent>(key, {
+                    eventType: ServerEventType.CARDS_TRADED,
+                    data: {
+                        cardByTeammate: player.incomingTrades.teammate.key,
+                        cardByLeft: player.incomingTrades.left.key,
+                        cardByRight: player.incomingTrades.right.key,
+                    },
+                })
+            }
         }
     }
 

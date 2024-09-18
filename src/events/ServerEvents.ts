@@ -1,8 +1,8 @@
 import { CardKey, CardName, GameEvent } from "./GameEvent";
 import { GameBet } from "../game_logic/GameRoundState";
 import { CardCombinationType } from "../game_logic/CardCombinations";
-import { GameWinnerResult } from "../game_logic/GameWinnerResult";
-import { PlayerKey, RoundScore } from "../game_logic/GameState";
+import { GameWinnerResult, RoundScore } from "../game_logic/GameState";
+import { PlayerKey } from "../game_logic/PlayerState";
 
 export enum ServerEventType {
     WAITING_4_JOIN = 'WAITING_4_JOIN',

@@ -1,5 +1,5 @@
 import { GameBet } from "../game_logic/GameRoundState";
-import { PlayerKey } from "../game_logic/GameState";
+import { PlayerKey } from "../game_logic/PlayerState";
 import { CardKey, CardName, GameEvent } from "./GameEvent";
 
 export enum ClientEventType {
