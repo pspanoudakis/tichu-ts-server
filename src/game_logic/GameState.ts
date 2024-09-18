@@ -43,9 +43,9 @@ export class RoundScore {
 
 export class GameState {
     private _result?: GameWinnerResult;
-    scoreHistory = Array<RoundScore>();
-    team02TotalPoints = 0;
-    team13TotalPoints = 0;
+    private _scoreHistory = Array<RoundScore>();
+    private _team02TotalPoints = 0;
+    private _team13TotalPoints = 0;
     readonly winningScore: number;
     private _status: GameStatus = GameStatus.INIT;
     currentRound = new GameRoundState();
@@ -58,6 +58,18 @@ export class GameState {
         if (!this._result)
             throw new BusinessError('Game Result not decided yet.');
         return this._result;
+    }
+
+    get scoreHistory(): readonly RoundScore[] {
+        return this._scoreHistory;
+    }
+
+    get team02TotalPoints() {
+        return this._team02TotalPoints;
+    }
+
+    get team13TotalPoints() {
+        return this._team13TotalPoints;
     }
 
     get isGameOver() {
@@ -84,16 +96,16 @@ export class GameState {
                 this.winningScore === 0 &&
                 this.currentRound.mustEndGameRound()
             ) ||
-            this.team02TotalPoints >= this.winningScore ||
-            this.team13TotalPoints >= this.winningScore
+            this._team02TotalPoints >= this.winningScore ||
+            this._team13TotalPoints >= this.winningScore
         );
     }
 
     endGameRound() {
         const score = this.currentRound.endGameRoundOrElseThrow();
-        this.scoreHistory.push(score);
-        this.team02TotalPoints += score.team02;
-        this.team13TotalPoints += score.team13;
+        this._scoreHistory.push(score);
+        this._team02TotalPoints += score.team02;
+        this._team13TotalPoints += score.team13;
         if(this.mustEndGame()) {
             if (score.team02 > score.team13) {
                 this._result = TEAM_KEYS.TEAM_02;

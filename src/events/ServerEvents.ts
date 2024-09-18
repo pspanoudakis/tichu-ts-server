@@ -131,7 +131,7 @@ export type GameEndedEvent = GameEvent<
         result: GameWinnerResult,
         team02TotalScore: number,
         team13TotalScore: number,
-        scores: RoundScore[],
+        scores: readonly RoundScore[],
     }
 >;
 
