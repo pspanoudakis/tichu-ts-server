@@ -4,8 +4,9 @@ export type CardKey = string;
 
 export type CardName = string;
 
-export type GameEvent<T, D = undefined> = {
+export type GameEvent<T, D = void> = {
     playerKey?: PlayerKey,
     eventType: T,
-    data: D,
-};
+} & (
+    D extends void ? { data?: never } : { data: D }
+);

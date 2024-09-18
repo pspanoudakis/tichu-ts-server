@@ -205,7 +205,6 @@ export class GameState {
             this.emitToAll<PlayerLeftEvent>({
                 eventType: ServerEventType.PLAYER_LEFT,
                 playerKey: playerKey,
-                data: undefined,
             });
             this.onGamePossiblyOver();
         }
@@ -256,12 +255,10 @@ export class GameState {
         this.emitToAll<TurnPassedEvent>({
             playerKey: playerKey,
             eventType: ServerEventType.TURN_PASSED,
-            data: undefined,
         });
         if (this.currentRound.pendingDragonToBeGiven) {
             this.emitToAll<PendingDragonDecisionEvent>({
                 eventType: ServerEventType.PENDING_DRAGON_DECISION,
-                data: undefined
             })
         } else if (!this.currentRound.table.currentCombination) {
             this.emitToAll<TableRoundEndedEvent>({
@@ -331,7 +328,6 @@ export class GameState {
         this.emitToAll<BombDroppedEvent>({
             playerKey: playerKey,
             eventType: ServerEventType.BOMB_DROPPED,
-            data: undefined,
         });
     }
     
