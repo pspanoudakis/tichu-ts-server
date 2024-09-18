@@ -8,32 +8,39 @@ import {
     RevealAllCardsEvent,
     TradeCardsEvent,
     ReceiveTradeEvent,
-    SessionClientEvent,
     PlayCardsEvent,
     PassTurnEvent,
     DropBombEvent,
     RequestCardEvent,
-    GiveDragonEvent
+    GiveDragonEvent,
+    SendMessageEvent
 } from "./events/ClientEvents";
 import { GameState } from "./game_logic/GameState";
 import {
     ErrorEvent,
+    MessageSentEvent,
     ServerEventType,
     WaitingForJoinEvent
 } from "./events/ServerEvents";
 import { BusinessError } from "./responses/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 import { PLAYER_KEYS, PlayerKey } from "./game_logic/PlayerState";
+import { GameEvent } from "./events/GameEvent";
 
-export type EventBase = {
-    eventType: string
-};
+export type EventBase = GameEvent<any, any>;
 
 interface CustomSocketData {
     playerKey?: PlayerKey;
 };
 
 type CustomSocket = Socket<
+    DefaultEventsMap,
+    DefaultEventsMap,
+    DefaultEventsMap,
+    CustomSocketData
+>;
+
+type CustomServer = Server<
     DefaultEventsMap,
     DefaultEventsMap,
     DefaultEventsMap,
@@ -59,7 +66,13 @@ export class GameSession {
     };
     private gameState: GameState;
 
-    constructor(sessionId: string, socketServer: Server, event: CreateRoomEvent) {
+    private chatMessages = new Array<{
+        text: string,
+        sentBy: string,
+        sentOn: Date
+    }>();
+
+    constructor(sessionId: string, socketServer: CustomServer, event: CreateRoomEvent) {
         this.id = sessionId;
         this.gameState = new GameState(
             event.data.winningScore,
@@ -106,41 +119,55 @@ export class GameSession {
                     PLAYER_KEYS.every(k => this.clients[k]?.hasJoinedGame)
                 );
             }).on(ClientEventType.PLACE_BET,
-                this.eventHandlerWrapper(playerKey, (e: PlaceBetEvent) => {
+                this.eventHandlerWrapper(client, (e: PlaceBetEvent) => {
                     this.gameState.onBetPlaced(playerKey, e);
                 })
             ).on(ClientEventType.REVEAL_ALL_CARDS,
-                this.eventHandlerWrapper(playerKey, (e: RevealAllCardsEvent) => {
+                this.eventHandlerWrapper(client, (e: RevealAllCardsEvent) => {
                     this.gameState.onAllCardsRevealed(playerKey, e);
                 })
             ).on(ClientEventType.TRADE_CARDS,
-                this.eventHandlerWrapper(playerKey, (e: TradeCardsEvent) => {
+                this.eventHandlerWrapper(client, (e: TradeCardsEvent) => {
                     this.gameState.onCardsTraded(playerKey, e);
                 })
             ).on(ClientEventType.RECEIVE_TRADE,
-                this.eventHandlerWrapper(playerKey, (e: ReceiveTradeEvent) => {
+                this.eventHandlerWrapper(client, (e: ReceiveTradeEvent) => {
                     this.gameState.onTradeReceived(playerKey, e);
         
                 })
             ).on(ClientEventType.PLAY_CARDS,
-                this.eventHandlerWrapper(playerKey, (e: PlayCardsEvent) => {
+                this.eventHandlerWrapper(client, (e: PlayCardsEvent) => {
                     this.gameState.onCardsPlayed(playerKey, e);
                 })
             ).on(ClientEventType.PASS_TURN,
-                this.eventHandlerWrapper(playerKey, (e: PassTurnEvent) => {
+                this.eventHandlerWrapper(client, (e: PassTurnEvent) => {
                     this.gameState.onTurnPassed(playerKey, e);
                 })
             ).on(ClientEventType.DROP_BOMB,
-                this.eventHandlerWrapper(playerKey, (e: DropBombEvent) => {
+                this.eventHandlerWrapper(client, (e: DropBombEvent) => {
                     this.gameState.onBombDropped(playerKey, e);
                 })
             ).on(ClientEventType.REQUEST_CARD,
-                this.eventHandlerWrapper(playerKey, (e: RequestCardEvent) => {
+                this.eventHandlerWrapper(client, (e: RequestCardEvent) => {
                     this.gameState.onCardRequested(playerKey, e);
                 })
             ).on(ClientEventType.GIVE_DRAGON,
-                this.eventHandlerWrapper(playerKey, (e: GiveDragonEvent) => {
+                this.eventHandlerWrapper(client, (e: GiveDragonEvent) => {
                     this.gameState.onDragonGiven(playerKey, e);
+                })
+            ).on(ClientEventType.SEND_MESSAGE,
+                this.eventHandlerWrapper(client, (e: SendMessageEvent) => {
+                    const msg = {
+                        sentBy: client.nickname,
+                        sentOn: new Date(),
+                        text: e.data.text,
+                    };
+                    this.chatMessages.push(msg);
+                    this.emitToNamespace<MessageSentEvent>({
+                        playerKey,
+                        eventType: ServerEventType.MESSAGE_SENT,
+                        data: msg
+                    });
                 })
             );
             GameSession.emitEvent<WaitingForJoinEvent>(socket, {
@@ -174,16 +201,15 @@ export class GameSession {
     }
 
     private eventHandlerWrapper<T extends ClientEventType, D = any>(
-        playerKey: PlayerKey,
-        eventHandler: (e: SessionClientEvent<T, D>) => void
+        client: GameClient, eventHandler: (e: GameEvent<T, D>) => void
     ) {
-        return (event: SessionClientEvent<T, D>) => {
+        return (event: GameEvent<T, D>) => {
             try {
-                if (!this.clients[playerKey]?.hasJoinedGame)
+                if (!client.hasJoinedGame)
                     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
                 eventHandler(event);
             } catch (error) {
-                this.emitErrorByKey(playerKey, error);
+                this.emitErrorByKey(client.playerKey, error);
             }
         };
     }

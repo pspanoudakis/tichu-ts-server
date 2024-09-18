@@ -17,35 +17,27 @@ export enum ClientEventType {
     SEND_MESSAGE = 'SEND_MESSAGE',
 };
 
-export type SessionClientEvent<T, D = undefined> = 
-    { playerKey: PlayerKey } &
-    GameEvent<
-        T, D & {
-            sessionId: string,
-        }
-    >
-
 export type CreateRoomEvent = GameEvent<
     ClientEventType.CREATE_ROOM, {
         winningScore: number,
     }
 >;
 
-export type JoinGameEvent = SessionClientEvent<
+export type JoinGameEvent = GameEvent<
     ClientEventType.JOIN_GAME, {
         playerNickname: string,
     }
 >;
 
-export type PlayCardsEvent = SessionClientEvent<
+export type PlayCardsEvent = GameEvent<
     ClientEventType.PLAY_CARDS, {
         selectedCardKeys: CardKey[],
     }
 >;
 
-export type PassTurnEvent = SessionClientEvent<ClientEventType.PASS_TURN>;
+export type PassTurnEvent = GameEvent<ClientEventType.PASS_TURN>;
 
-export type TradeCardsEvent = SessionClientEvent<
+export type TradeCardsEvent = GameEvent<
     ClientEventType.TRADE_CARDS, {
         teammateCardKey: CardKey,
         leftCardKey: CardKey,
@@ -53,40 +45,32 @@ export type TradeCardsEvent = SessionClientEvent<
     }
 >;
 
-// function validateTradeCardsEvent(e: TradeCardsEvent, grs: GameRoundState) {
-//     if (Object.values(e.data).some(
-//         key => !grs.playerHands[e.playerKey].find(card => card.key === key)
-//     )) {
-//         throw new BusinessError('Attempted to trade not owned card.');
-//     }
-// }
+export type ReceiveTradeEvent = GameEvent<ClientEventType.RECEIVE_TRADE>;
 
-export type ReceiveTradeEvent = SessionClientEvent<ClientEventType.RECEIVE_TRADE>;
-
-export type GiveDragonEvent = SessionClientEvent<
+export type GiveDragonEvent = GameEvent<
     ClientEventType.GIVE_DRAGON, {
         chosenOponentKey: PlayerKey,
     }
 >;
 
-export type RevealAllCardsEvent = SessionClientEvent<ClientEventType.REVEAL_ALL_CARDS>;
+export type RevealAllCardsEvent = GameEvent<ClientEventType.REVEAL_ALL_CARDS>;
 
-export type PlaceBetEvent = SessionClientEvent<
+export type PlaceBetEvent = GameEvent<
     ClientEventType.PLACE_BET, {
         betPoints: GameBet.TICHU | GameBet.GRAND_TICHU
     }
 >;
 
-export type DropBombEvent = SessionClientEvent<ClientEventType.DROP_BOMB>;
+export type DropBombEvent = GameEvent<ClientEventType.DROP_BOMB>;
 
-export type RequestCardEvent = SessionClientEvent<
+export type RequestCardEvent = GameEvent<
     ClientEventType.REQUEST_CARD, {
         requestedCardName: CardName
     }
 >;
 
-export type SendMessageEvent = SessionClientEvent<
+export type SendMessageEvent = GameEvent<
     ClientEventType.SEND_MESSAGE, {
-        message: string
+        text: string
     }
 >;

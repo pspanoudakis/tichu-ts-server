@@ -98,7 +98,9 @@ export type CardRequestedEvent = GameEvent<
 
 export type MessageSentEvent = GameEvent<
     ServerEventType.MESSAGE_SENT, {
-        message: string,
+        sentBy: string,
+        sentOn: Date,
+        text: string,
     }
 >;
 
