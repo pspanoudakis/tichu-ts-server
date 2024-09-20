@@ -1,76 +1,105 @@
+import { z } from "zod";
 import { GameBet } from "../game_logic/GameRoundState";
-import { PlayerKey } from "../game_logic/PlayerState";
-import { CardKey, CardName, GameEvent } from "./GameEvent";
+import { createEmptyGameEventSchema, createGameEventSchema, zCardKey, zCardName } from "./GameEvent";
+import { zPlayerKeySchema } from "../game_logic/PlayerKeys";
 
-export enum ClientEventType {
-    CREATE_ROOM = 'CREATE_ROOM',
-    JOIN_GAME = 'JOIN_GAME',
-    PLAY_CARDS = 'PLAY_CARDS',
-    PASS_TURN = 'PASS_TURN',
-    TRADE_CARDS = 'TRADE_CARDS',
-    RECEIVE_TRADE = 'RECEIVE_TRADE',
-    GIVE_DRAGON = 'GIVE_DRAGON',
-    REVEAL_ALL_CARDS = 'REVEAL_ALL_CARDS',
-    PLACE_BET = 'PLACE_BET',
-    DROP_BOMB = 'DROP_BOMB',
-    REQUEST_CARD = 'REQUEST_CARD',
-    SEND_MESSAGE = 'SEND_MESSAGE',
-};
+export const ClientEventType =  {
+    CREATE_ROOM: 'CREATE_ROOM',
+    JOIN_GAME: 'JOIN_GAME',
+    PLAY_CARDS: 'PLAY_CARDS',
+    PASS_TURN: 'PASS_TURN',
+    TRADE_CARDS: 'TRADE_CARDS',
+    RECEIVE_TRADE: 'RECEIVE_TRADE',
+    GIVE_DRAGON: 'GIVE_DRAGON',
+    REVEAL_ALL_CARDS: 'REVEAL_ALL_CARDS',
+    PLACE_BET: 'PLACE_BET',
+    DROP_BOMB: 'DROP_BOMB',
+    REQUEST_CARD: 'REQUEST_CARD',
+    SEND_MESSAGE: 'SEND_MESSAGE',
+} as const;
 
-export type CreateRoomEvent = GameEvent<
-    ClientEventType.CREATE_ROOM, {
-        winningScore: number,
-    }
->;
+const zCreateRoomEvent = createGameEventSchema(
+    z.literal(ClientEventType.CREATE_ROOM),
+    z.object({
+        winningScore: z.number()
+    })
+);
+export type CreateRoomEvent = z.infer<typeof zCreateRoomEvent>;
 
-export type JoinGameEvent = GameEvent<
-    ClientEventType.JOIN_GAME, {
-        playerNickname: string,
-    }
->;
+const zJoinGameEvent = createGameEventSchema(
+    z.literal(ClientEventType.JOIN_GAME),
+    z.object({
+        playerNickname: z.string(),
+    }),
+)
+export type JoinGameEvent = z.infer<typeof zJoinGameEvent>;
 
-export type PlayCardsEvent = GameEvent<
-    ClientEventType.PLAY_CARDS, {
-        selectedCardKeys: CardKey[],
-    }
->;
+const zPlayCardsEvent = createGameEventSchema(
+    z.literal(ClientEventType.PLAY_CARDS),
+    z.object({
+        selectedCardKeys: z.array(zCardKey)
+    })
+)
+export type PlayCardsEvent = z.infer<typeof zPlayCardsEvent>;
 
-export type PassTurnEvent = GameEvent<ClientEventType.PASS_TURN>;
+const zPassTurnEvent = createEmptyGameEventSchema(z.literal(ClientEventType.PASS_TURN));
+export type PassTurnEvent = z.infer<typeof zPassTurnEvent>;
 
-export type TradeCardsEvent = GameEvent<
-    ClientEventType.TRADE_CARDS, {
-        teammateCardKey: CardKey,
-        leftCardKey: CardKey,
-        rightCardKey: CardKey,
-    }
->;
 
-export type ReceiveTradeEvent = GameEvent<ClientEventType.RECEIVE_TRADE>;
+const zTradeCardsEvent = createGameEventSchema(
+    z.literal(ClientEventType.TRADE_CARDS),
+    z.object({
+        teammateCardKey: zCardKey,
+        leftCardKey: zCardKey,
+        rightCardKey: zCardKey,
+    })
+);
+export type TradeCardsEvent = z.infer<typeof zTradeCardsEvent>;
 
-export type GiveDragonEvent = GameEvent<
-    ClientEventType.GIVE_DRAGON, {
-        chosenOponentKey: PlayerKey,
-    }
->;
+const zReceiveTradeEvent = createGameEventSchema(
+    z.literal(ClientEventType.RECEIVE_TRADE), z.void()
+);
+export type ReceiveTradeEvent = z.infer<typeof zReceiveTradeEvent>;
 
-export type RevealAllCardsEvent = GameEvent<ClientEventType.REVEAL_ALL_CARDS>;
+const zGiveDragonEvent = createGameEventSchema(
+    z.literal(ClientEventType.GIVE_DRAGON),
+    z.object({
+        chosenOponentKey: zPlayerKeySchema,
+    })
+);
+export type GiveDragonEvent = z.infer<typeof zGiveDragonEvent>
 
-export type PlaceBetEvent = GameEvent<
-    ClientEventType.PLACE_BET, {
-        betPoints: GameBet.TICHU | GameBet.GRAND_TICHU
-    }
->;
+const zRevealAllCardsEvent = createEmptyGameEventSchema(
+    z.literal(ClientEventType.REVEAL_ALL_CARDS)
+);
+export type RevealAllCardsEvent = z.infer<typeof zRevealAllCardsEvent>;
 
-export type DropBombEvent = GameEvent<ClientEventType.DROP_BOMB>;
+const zPlaceBetEvent = createGameEventSchema(
+    z.literal(ClientEventType.PLACE_BET),
+    z.object({
+        betPoints: z.union([
+            z.literal(GameBet.TICHU),
+            z.literal(GameBet.GRAND_TICHU)
+        ]),
+    })
+)
+export type PlaceBetEvent = z.infer<typeof zPlaceBetEvent>;
 
-export type RequestCardEvent = GameEvent<
-    ClientEventType.REQUEST_CARD, {
-        requestedCardName: CardName
-    }
->;
+const zDropBombEvent = createEmptyGameEventSchema(z.literal(ClientEventType.DROP_BOMB));
+export type DropBombEvent = z.infer<typeof zDropBombEvent>;
 
-export type SendMessageEvent = GameEvent<
-    ClientEventType.SEND_MESSAGE, {
-        text: string
-    }
->;
+const zRequestCardEvent = createGameEventSchema(
+    z.literal(ClientEventType.REQUEST_CARD),
+    z.object({
+        requestedCardName: zCardName,
+    })
+)
+export type RequestCardEvent = z.infer<typeof zRequestCardEvent>;
+
+const zSendMessageEvent = createGameEventSchema(
+    z.literal(ClientEventType.SEND_MESSAGE),
+    z.object({
+        text: z.string(),
+    })
+);
+export type SendMessageEvent = z.infer<typeof zSendMessageEvent>;

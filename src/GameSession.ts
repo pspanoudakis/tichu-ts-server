@@ -193,7 +193,7 @@ export class GameSession {
         GameSession.emitError(socket, error);
     }
 
-    private eventHandlerWrapper<T extends ClientEventType, D = any>(
+    private eventHandlerWrapper<T extends (keyof typeof ClientEventType), D = any>(
         client: GameClient, eventHandler: (e: GameEvent<T, D>) => void
     ) {
         return (event: GameEvent<T, D>) => {
