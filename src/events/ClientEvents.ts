@@ -18,7 +18,7 @@ export const ClientEventType =  {
     SEND_MESSAGE: 'SEND_MESSAGE',
 } as const;
 
-const zCreateRoomEvent = createGameEventSchema(
+export const zCreateRoomEvent = createGameEventSchema(
     z.literal(ClientEventType.CREATE_ROOM),
     z.object({
         winningScore: z.number()
@@ -26,7 +26,7 @@ const zCreateRoomEvent = createGameEventSchema(
 );
 export type CreateRoomEvent = z.infer<typeof zCreateRoomEvent>;
 
-const zJoinGameEvent = createGameEventSchema(
+export const zJoinGameEvent = createGameEventSchema(
     z.literal(ClientEventType.JOIN_GAME),
     z.object({
         playerNickname: z.string(),
@@ -34,7 +34,7 @@ const zJoinGameEvent = createGameEventSchema(
 )
 export type JoinGameEvent = z.infer<typeof zJoinGameEvent>;
 
-const zPlayCardsEvent = createGameEventSchema(
+export const zPlayCardsEvent = createGameEventSchema(
     z.literal(ClientEventType.PLAY_CARDS),
     z.object({
         selectedCardKeys: z.array(zCardKey)
@@ -42,11 +42,11 @@ const zPlayCardsEvent = createGameEventSchema(
 )
 export type PlayCardsEvent = z.infer<typeof zPlayCardsEvent>;
 
-const zPassTurnEvent = createEmptyGameEventSchema(z.literal(ClientEventType.PASS_TURN));
+export const zPassTurnEvent = createEmptyGameEventSchema(z.literal(ClientEventType.PASS_TURN));
 export type PassTurnEvent = z.infer<typeof zPassTurnEvent>;
 
 
-const zTradeCardsEvent = createGameEventSchema(
+export const zTradeCardsEvent = createGameEventSchema(
     z.literal(ClientEventType.TRADE_CARDS),
     z.object({
         teammateCardKey: zCardKey,
@@ -56,12 +56,12 @@ const zTradeCardsEvent = createGameEventSchema(
 );
 export type TradeCardsEvent = z.infer<typeof zTradeCardsEvent>;
 
-const zReceiveTradeEvent = createGameEventSchema(
-    z.literal(ClientEventType.RECEIVE_TRADE), z.void()
+export const zReceiveTradeEvent = createEmptyGameEventSchema(
+    z.literal(ClientEventType.RECEIVE_TRADE)
 );
 export type ReceiveTradeEvent = z.infer<typeof zReceiveTradeEvent>;
 
-const zGiveDragonEvent = createGameEventSchema(
+export const zGiveDragonEvent = createGameEventSchema(
     z.literal(ClientEventType.GIVE_DRAGON),
     z.object({
         chosenOponentKey: zPlayerKeySchema,
@@ -69,12 +69,12 @@ const zGiveDragonEvent = createGameEventSchema(
 );
 export type GiveDragonEvent = z.infer<typeof zGiveDragonEvent>
 
-const zRevealAllCardsEvent = createEmptyGameEventSchema(
+export const zRevealAllCardsEvent = createEmptyGameEventSchema(
     z.literal(ClientEventType.REVEAL_ALL_CARDS)
 );
 export type RevealAllCardsEvent = z.infer<typeof zRevealAllCardsEvent>;
 
-const zPlaceBetEvent = createGameEventSchema(
+export const zPlaceBetEvent = createGameEventSchema(
     z.literal(ClientEventType.PLACE_BET),
     z.object({
         betPoints: z.union([
@@ -85,10 +85,10 @@ const zPlaceBetEvent = createGameEventSchema(
 )
 export type PlaceBetEvent = z.infer<typeof zPlaceBetEvent>;
 
-const zDropBombEvent = createEmptyGameEventSchema(z.literal(ClientEventType.DROP_BOMB));
+export const zDropBombEvent = createEmptyGameEventSchema(z.literal(ClientEventType.DROP_BOMB));
 export type DropBombEvent = z.infer<typeof zDropBombEvent>;
 
-const zRequestCardEvent = createGameEventSchema(
+export const zRequestCardEvent = createGameEventSchema(
     z.literal(ClientEventType.REQUEST_CARD),
     z.object({
         requestedCardName: zCardName,
@@ -96,7 +96,7 @@ const zRequestCardEvent = createGameEventSchema(
 )
 export type RequestCardEvent = z.infer<typeof zRequestCardEvent>;
 
-const zSendMessageEvent = createGameEventSchema(
+export const zSendMessageEvent = createGameEventSchema(
     z.literal(ClientEventType.SEND_MESSAGE),
     z.object({
         text: z.string(),
