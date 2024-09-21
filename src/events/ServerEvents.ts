@@ -1,10 +1,15 @@
 import { z } from "zod";
-import { createEmptyGameEventSchema, createGameEventSchema, GameEvent, zCardKey, zCardName } from "./GameEvent";
+import {
+    createEmptyGameEventSchema,
+    createGameEventSchema,
+    GameEvent,
+    zCardKey, 
+    zCardName
+} from "./GameEvent";
 import { GameBet } from "../game_logic/GameRoundState";
 import { CardCombinationType } from "../game_logic/CardCombinations";
-import { RoundScore, zGameWinnerResult } from "../game_logic/GameState";
-import { PlayerKey } from "../game_logic/PlayerState";
-import { zPlayerKey } from "../game_logic/PlayerKeys";
+import { zGameWinnerResult, zRoundScore } from "../game_logic/GameState";
+import { PlayerKey, zPlayerKey } from "../game_logic/PlayerKeys";
 
 export const ServerEventType = {
     WAITING_4_JOIN: 'WAITING_4_JOIN',
@@ -162,8 +167,7 @@ export type GameRoundStartedEvent = z.infer<typeof zGameRoundStartedEvent>;
 export const zGameRoundEndedEvent = createGameEventSchema(
     z.literal(ServerEventType.GAME_ROUND_ENDED),
     z.object({
-        // TODO
-        roundScore: RoundScore,
+        roundScore: zRoundScore,
     })
 );
 export type GameRoundEndedEvent = z.infer<typeof zGameRoundEndedEvent>;
@@ -174,8 +178,7 @@ export const zGameEndedEvent = createGameEventSchema(
         result: zGameWinnerResult,
         team02TotalScore: z.number(),
         team13TotalScore: z.number(),
-        // TODO
-        scores: z.array(RoundScore),
+        scores: z.array(zRoundScore),
     })
 );
 export type GameEndedEvent = z.infer<typeof zGameEndedEvent>;

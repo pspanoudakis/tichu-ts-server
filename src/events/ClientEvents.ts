@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { GameBet } from "../game_logic/GameRoundState";
-import { createEmptyGameEventSchema, createGameEventSchema, zCardKey, zCardName } from "./GameEvent";
+import { 
+    createEmptyGameEventSchema,
+    createGameEventSchema,
+    zCardKey,
+    zCardName
+} from "./GameEvent";
 import { zPlayerKey } from "../game_logic/PlayerKeys";
 
 export const ClientEventType =  {
@@ -42,7 +47,8 @@ export const zPlayCardsEvent = createGameEventSchema(
 )
 export type PlayCardsEvent = z.infer<typeof zPlayCardsEvent>;
 
-export const zPassTurnEvent = createEmptyGameEventSchema(z.literal(ClientEventType.PASS_TURN));
+export const zPassTurnEvent =
+    createEmptyGameEventSchema(z.literal(ClientEventType.PASS_TURN));
 export type PassTurnEvent = z.infer<typeof zPassTurnEvent>;
 
 
@@ -85,7 +91,8 @@ export const zPlaceBetEvent = createGameEventSchema(
 )
 export type PlaceBetEvent = z.infer<typeof zPlaceBetEvent>;
 
-export const zDropBombEvent = createEmptyGameEventSchema(z.literal(ClientEventType.DROP_BOMB));
+export const zDropBombEvent =
+    createEmptyGameEventSchema(z.literal(ClientEventType.DROP_BOMB));
 export type DropBombEvent = z.infer<typeof zDropBombEvent>;
 
 export const zRequestCardEvent = createGameEventSchema(

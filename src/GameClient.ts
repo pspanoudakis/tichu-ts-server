@@ -1,4 +1,4 @@
-import { PlayerKey } from "./game_logic/PlayerState";
+import { PlayerKey } from "./game_logic/PlayerKeys";
 import { BusinessError } from "./responses/BusinessError";
 
 export class GameClient {

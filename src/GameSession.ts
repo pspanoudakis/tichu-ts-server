@@ -34,9 +34,9 @@ import {
 } from "./events/ServerEvents";
 import { BusinessError } from "./responses/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
-import { PLAYER_KEYS, PlayerKey } from "./game_logic/PlayerState";
 import { GameEvent } from "./events/GameEvent";
 import { ChatMessage } from "./ChatMessage";
+import { PLAYER_KEYS, PlayerKey } from "./game_logic/PlayerKeys";
 
 export type EventBase = GameEvent<any, any>;
 

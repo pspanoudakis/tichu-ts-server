@@ -11,7 +11,8 @@ import {
 import { CardInfo, specialCards } from "./CardInfo";
 import { Deck } from "./Deck";
 import { RoundScore } from "./GameState";
-import { PLAYER_KEYS, PlayerKey, PlayerState } from "./PlayerState";
+import { PLAYER_KEYS, PlayerKey } from "./PlayerKeys";
+import { PlayerState } from "./PlayerState";
 
 /** Possible player bet points */
 export enum GameBet {
@@ -112,12 +113,15 @@ export class GameRoundState {
         if (this.table.currentCombination !== null) {
             if (selectedCombination instanceof Bomb) {
                 if (this.table.currentCombination instanceof Bomb) {
-                    return Bomb.compareBombs(selectedCombination, this.table.currentCombination) > 0;
+                    return Bomb.compareBombs(
+                        selectedCombination, this.table.currentCombination
+                    ) > 0;
                 }
                 return true;
             }
             if (selectedCombination.type === this.table.currentCombination.type) {
-                return this.table.currentCombination.compareCombination(selectedCombination) < 0;
+                return this.table.currentCombination
+                    .compareCombination(selectedCombination) < 0;
             }
             return false;
         }
@@ -130,7 +134,9 @@ export class GameRoundState {
      * @param selectedCards The current player's selected cards.
      * @param combination The combination to be played.
      */
-    private throwIfMahjongRequestCheckFailed(selectedCards: CardInfo[], combination: CardCombination) {
+    private throwIfMahjongRequestCheckFailed(
+        selectedCards: CardInfo[], combination: CardCombination
+    ) {
         // If there is a pending mahjong request, the player must play the Mahjong
         if (!selectedCards.some(card => card.name === specialCards.MAHJONG)) {
             throw new BusinessError("The Mahjong must be played after a Mahjong request");
@@ -496,7 +502,10 @@ export class GameRoundState {
      * Calculates the score for this round.
      */
     calculateGameRoundScore(): RoundScore {
-        let score = new RoundScore();
+        let score: RoundScore = {
+            team02: 0,
+            team13: 0,
+        };
         let activePlayers = PLAYER_KEYS.reduce((active, key) => {
             return active + (this.players[key].getNumCards() > 0 ? 1 : 0);
         }, 0);

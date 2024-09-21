@@ -35,8 +35,7 @@ import { BusinessError } from "../responses/BusinessError";
 import { UnexpectedCombinationType } from "./CardCombinations";
 import { CardInfo } from "./CardInfo";
 import { GameRoundState } from "./GameRoundState";
-import { zTeamKeySchema } from "./PlayerKeys";
-import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS, TeamKey } from "./PlayerState";
+import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS, zTeamKeySchema } from "./PlayerKeys";
 
 enum GameStatus {
     INIT = 'INIT',
@@ -44,10 +43,11 @@ enum GameStatus {
     OVER = 'OVER'
 }
 
-export class RoundScore {
-    team02 = 0;
-    team13 = 0;
-}
+export const zRoundScore = z.object({
+    team02: z.number(),
+    team13: z.number(),
+})
+export type RoundScore = z.infer<typeof zRoundScore>;
 
 export const zGameWinnerResult = z.union([
     zTeamKeySchema, z.literal('TIE')

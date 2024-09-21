@@ -32,8 +32,10 @@ export const zTeamKeySchema = z.union([
 export type TeamKey = z.infer<typeof zTeamKeySchema>;
 
 export const TEAM_PLAYERS = {
-    [TEAM_KEYS.TEAM_02]: [_PLAYER_KEYS.PLAYER1, _PLAYER_KEYS.PLAYER3] as readonly PlayerKey[],
-    [TEAM_KEYS.TEAM_13]: [_PLAYER_KEYS.PLAYER2, _PLAYER_KEYS.PLAYER4] as readonly PlayerKey[],
+    [TEAM_KEYS.TEAM_02]:
+        [_PLAYER_KEYS.PLAYER1, _PLAYER_KEYS.PLAYER3] as readonly PlayerKey[],
+    [TEAM_KEYS.TEAM_13]:
+        [_PLAYER_KEYS.PLAYER2, _PLAYER_KEYS.PLAYER4] as readonly PlayerKey[],
 } as const;
 
 export const PLAYER_KEYS = [
