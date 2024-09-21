@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { GameBet } from "../game_logic/GameRoundState";
 import { createEmptyGameEventSchema, createGameEventSchema, zCardKey, zCardName } from "./GameEvent";
-import { zPlayerKeySchema } from "../game_logic/PlayerKeys";
+import { zPlayerKey } from "../game_logic/PlayerKeys";
 
 export const ClientEventType =  {
     CREATE_ROOM: 'CREATE_ROOM',
@@ -64,7 +64,7 @@ export type ReceiveTradeEvent = z.infer<typeof zReceiveTradeEvent>;
 export const zGiveDragonEvent = createGameEventSchema(
     z.literal(ClientEventType.GIVE_DRAGON),
     z.object({
-        chosenOponentKey: zPlayerKeySchema,
+        chosenOponentKey: zPlayerKey,
     })
 );
 export type GiveDragonEvent = z.infer<typeof zGiveDragonEvent>

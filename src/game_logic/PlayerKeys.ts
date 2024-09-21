@@ -9,14 +9,14 @@ const _PLAYER_KEYS = {
 
 // export type PlayerKey = typeof _PLAYER_KEYS[keyof typeof _PLAYER_KEYS];
 
-export const zPlayerKeySchema = z.union([
+export const zPlayerKey = z.union([
     z.literal(_PLAYER_KEYS.PLAYER1),
     z.literal(_PLAYER_KEYS.PLAYER2),
     z.literal(_PLAYER_KEYS.PLAYER3),
     z.literal(_PLAYER_KEYS.PLAYER4),
 ]);
 
-export type PlayerKey = z.infer<typeof zPlayerKeySchema>;
+export type PlayerKey = z.infer<typeof zPlayerKey>;
 
 export const TEAM_KEYS = {
     TEAM_02: 'TEAM_02',

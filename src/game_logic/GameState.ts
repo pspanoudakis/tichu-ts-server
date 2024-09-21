@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
     DropBombEvent,
     GiveDragonEvent,
@@ -34,6 +35,7 @@ import { BusinessError } from "../responses/BusinessError";
 import { UnexpectedCombinationType } from "./CardCombinations";
 import { CardInfo } from "./CardInfo";
 import { GameRoundState } from "./GameRoundState";
+import { zTeamKeySchema } from "./PlayerKeys";
 import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS, TeamKey } from "./PlayerState";
 
 enum GameStatus {
@@ -47,7 +49,10 @@ export class RoundScore {
     team13 = 0;
 }
 
-export type GameWinnerResult = TeamKey | 'TIE';
+export const zGameWinnerResult = z.union([
+    zTeamKeySchema, z.literal('TIE')
+])
+export type GameWinnerResult = z.infer<typeof zGameWinnerResult>;
 
 type PlayerEventEmitter =
     <T extends EventBase>(playerKey: PlayerKey, e: T) => void;
