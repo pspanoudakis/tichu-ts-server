@@ -1,4 +1,4 @@
-import { GiveDragonEvent, RequestCardEvent } from "../events/ClientEvents";
+import { GiveDragonEvent, RequestCardEvent } from "../schemas/events/ClientEvents";
 import { BusinessError } from "./BusinessError";
 import { 
     Bomb, 

@@ -1,4 +1,4 @@
-import { PlaceBetEvent, TradeCardsEvent } from "../events/ClientEvents";
+import { PlaceBetEvent, TradeCardsEvent } from "../schemas/events/ClientEvents";
 import { BusinessError } from "./BusinessError";
 import { CardInfo, specialCards } from "./CardInfo";
 import { GameBet } from "./GameRoundState";

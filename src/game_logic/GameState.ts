@@ -10,7 +10,7 @@ import {
     RequestCardEvent,
     RevealAllCardsEvent,
     TradeCardsEvent
-} from "../events/ClientEvents";
+} from "../schemas/events/ClientEvents";
 import {
     AllCardsRevealedEvent,
     BetPlacedEvent,
@@ -29,7 +29,7 @@ import {
     TableRoundEndedEvent,
     TableRoundStartedEvent,
     TurnPassedEvent
-} from "../events/ServerEvents";
+} from "../schemas/events/ServerEvents";
 import { EventBase } from "../GameSession";
 import { BusinessError } from "./BusinessError";
 import { UnexpectedCombinationType } from "./CardCombinations";

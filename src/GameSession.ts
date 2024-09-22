@@ -23,18 +23,18 @@ import {
     zGiveDragonEvent,
     zSendMessageEvent,
     zJoinGameEvent
-} from "./events/ClientEvents";
+} from "./schemas/events/ClientEvents";
 import { GameState } from "./game_logic/GameState";
 import {
     ErrorEvent,
     MessageSentEvent,
     ServerEventType,
     WaitingForJoinEvent
-} from "./events/ServerEvents";
+} from "./schemas/events/ServerEvents";
 import { BusinessError } from "./game_logic/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
-import { GameEvent } from "./events/GameEvent";
-import { ChatMessage } from "./ChatMessage";
+import { GameEvent } from "./schemas/events/GameEvent";
+import { ChatMessage } from "./game_logic/ChatMessage";
 import { PLAYER_KEYS, PlayerKey } from "./game_logic/PlayerKeys";
 
 export type EventBase = GameEvent<any, any>;
