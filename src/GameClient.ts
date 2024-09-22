@@ -1,5 +1,5 @@
 import { PlayerKey } from "./game_logic/PlayerKeys";
-import { BusinessError } from "./responses/BusinessError";
+import { BusinessError } from "./game_logic/BusinessError";
 
 export class GameClient {
     readonly playerKey: PlayerKey;

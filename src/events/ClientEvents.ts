@@ -9,7 +9,6 @@ import {
 import { zPlayerKey } from "../game_logic/PlayerKeys";
 
 export const ClientEventType =  {
-    CREATE_ROOM: 'CREATE_ROOM',
     JOIN_GAME: 'JOIN_GAME',
     PLAY_CARDS: 'PLAY_CARDS',
     PASS_TURN: 'PASS_TURN',
@@ -22,14 +21,6 @@ export const ClientEventType =  {
     REQUEST_CARD: 'REQUEST_CARD',
     SEND_MESSAGE: 'SEND_MESSAGE',
 } as const;
-
-export const zCreateRoomEvent = createGameEventSchema(
-    z.literal(ClientEventType.CREATE_ROOM),
-    z.object({
-        winningScore: z.number()
-    })
-);
-export type CreateRoomEvent = z.infer<typeof zCreateRoomEvent>;
 
 export const zJoinGameEvent = createGameEventSchema(
     z.literal(ClientEventType.JOIN_GAME),

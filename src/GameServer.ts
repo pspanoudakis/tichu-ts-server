@@ -1,10 +1,19 @@
 import http from "http";
 import { Server } from "socket.io";
-import { BusinessError } from "./responses/BusinessError";
-import { CreateRoomEvent } from "./events/ClientEvents";
+import { BusinessError } from "./game_logic/BusinessError";
 import { GameSession } from "./GameSession";
 import express, { Response as ExpressResponse } from "express";
-import { JoinGameResponse, RoomCreatedResponse } from "./responses/ServerResponses";
+import { z } from "zod";
+
+export const zCreateRoomRequest = z.object({
+    winningScore: z.number()
+});
+type CreateRoomRequest = z.infer<typeof zCreateRoomRequest>;
+
+export const zSessionIdResponse = z.object({
+    sessionId: z.string(),
+});
+type SessionIdResponse = z.infer<typeof zSessionIdResponse>;
 
 export class GameServer {
 
@@ -21,10 +30,10 @@ export class GameServer {
         this.express.post('/', (req, res) => {
             // validate...
             GameServer.responseCreator(res, () => 
-                this.handleCreateRoomEvent(req.body as CreateRoomEvent)
+                this.handleCreateRoomEvent(zCreateRoomRequest.parse(req.body))
             );
         });
-        this.express.post('/join', (req, res) => {
+        this.express.get('/join', (_, res) => {
             // validate...
             GameServer.responseCreator(res, () => 
                 this.handleJoinGameEvent()
@@ -63,6 +72,7 @@ export class GameServer {
             if (err instanceof BusinessError)
                 res.status(400);
             else
+                console.error(err?.toString?.());
                 res.status(500);
             res.send({ error: String(err) });
         }
@@ -72,10 +82,12 @@ export class GameServer {
         this.httpServer.listen(port, callback);
     }
 
-    handleCreateRoomEvent(e: CreateRoomEvent): RoomCreatedResponse {
+    handleCreateRoomEvent(req: CreateRoomRequest): SessionIdResponse {
         // Create new session
         const sessionId = this.generateSessionId();
-        const session = new GameSession(sessionId, this.socketServer, e);
+        const session = new GameSession(
+            sessionId, this.socketServer, req.winningScore
+        );
         if (this.sessions.has(sessionId))
             throw new Error(`Regenerated existing session id: '${sessionId}'`);
         this.sessions.set(sessionId, session);
@@ -85,7 +97,7 @@ export class GameServer {
         };
     }
 
-    handleJoinGameEvent(): JoinGameResponse {
+    handleJoinGameEvent(): SessionIdResponse {
         for (const session of this.sessions.values()) {
             if (!session.isFull()) {
                 return {

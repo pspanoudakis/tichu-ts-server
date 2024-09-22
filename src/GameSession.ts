@@ -1,7 +1,6 @@
 import { Namespace, Server, Socket } from "socket.io";
 import { GameClient } from "./GameClient";
 import {
-    CreateRoomEvent,
     ClientEventType,
     PlaceBetEvent,
     RevealAllCardsEvent,
@@ -32,7 +31,7 @@ import {
     ServerEventType,
     WaitingForJoinEvent
 } from "./events/ServerEvents";
-import { BusinessError } from "./responses/BusinessError";
+import { BusinessError } from "./game_logic/BusinessError";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 import { GameEvent } from "./events/GameEvent";
 import { ChatMessage } from "./ChatMessage";
@@ -79,10 +78,10 @@ export class GameSession {
 
     private chatMessages = new Array<ChatMessage>();
 
-    constructor(sessionId: string, socketServer: CustomServer, event: CreateRoomEvent) {
+    constructor(sessionId: string, socketServer: CustomServer, winningScore: number) {
         this.id = sessionId;
         this.gameState = new GameState(
-            event.data.winningScore,
+            winningScore,
             this.emitEventByKey,
             this.emitToNamespace
         );

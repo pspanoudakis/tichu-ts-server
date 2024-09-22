@@ -1,5 +1,5 @@
 import { GiveDragonEvent, RequestCardEvent } from "../events/ClientEvents";
-import { BusinessError } from "../responses/BusinessError";
+import { BusinessError } from "./BusinessError";
 import { 
     Bomb, 
     CardCombination, 

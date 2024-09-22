@@ -31,7 +31,7 @@ import {
     TurnPassedEvent
 } from "../events/ServerEvents";
 import { EventBase } from "../GameSession";
-import { BusinessError } from "../responses/BusinessError";
+import { BusinessError } from "./BusinessError";
 import { UnexpectedCombinationType } from "./CardCombinations";
 import { CardInfo } from "./CardInfo";
 import { GameRoundState } from "./GameRoundState";

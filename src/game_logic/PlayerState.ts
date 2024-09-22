@@ -1,5 +1,5 @@
 import { PlaceBetEvent, TradeCardsEvent } from "../events/ClientEvents";
-import { BusinessError } from "../responses/BusinessError";
+import { BusinessError } from "./BusinessError";
 import { CardInfo, specialCards } from "./CardInfo";
 import { GameBet } from "./GameRoundState";
 import { PlayerKey } from "./PlayerKeys";
