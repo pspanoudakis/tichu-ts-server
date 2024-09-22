@@ -2,9 +2,7 @@ import { z } from "zod";
 import { PLAYER_KEYS, PlayerKey } from "../game_logic/PlayerKeys";
 
 export const zCardKey = z.string();
-export type CardKey = z.infer<typeof zCardKey>;
 export const zCardName = z.string();
-export type CardName = z.infer<typeof zCardName>;
 
 const PlayerKeySchema = z.union([
     z.literal(PLAYER_KEYS[0]),
