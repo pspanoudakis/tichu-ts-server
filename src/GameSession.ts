@@ -36,6 +36,7 @@ import { DefaultEventsMap } from "socket.io/dist/typed-events";
 import { GameEvent } from "./schemas/events/GameEvent";
 import { ChatMessage } from "./game_logic/ChatMessage";
 import { PLAYER_KEYS, PlayerKey } from "./game_logic/PlayerKeys";
+import { extractErrorInfo } from "./schemas/API";
 
 export type EventBase = GameEvent<any, any>;
 
@@ -194,12 +195,12 @@ export class GameSession {
     }
 
     private static emitError(socket: CustomSocket, error: any) {
+        const { errorType: eventType, message } = extractErrorInfo(error);
         GameSession.emitEvent<ErrorEvent>(socket, {
-            eventType: 
-                (error instanceof BusinessError) ?
-                ServerEventType.BUSINESS_ERROR :
-                ServerEventType.UNKNOWN_SERVER_ERROR,
-            data: { message: error?.toString?.() ?? JSON.stringify(error) },
+            eventType,
+            data: {
+                message,
+            },
         });        
     }
 
@@ -218,13 +219,7 @@ export class GameSession {
             try {
                 if (!client.hasJoinedGame)
                     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
-                let checkedEvt;
-                try {
-                    checkedEvt = validator(event);
-                } catch (ve) {
-                    throw new BusinessError(`Unexpected Message shape: ${ve?.toString()}`);
-                }
-                eventHandler(checkedEvt);
+                eventHandler(validator(event));
             } catch (error) {
                 this.emitErrorByKey(client.playerKey, error);
             }

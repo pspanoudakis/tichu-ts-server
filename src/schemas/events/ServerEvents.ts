@@ -10,6 +10,7 @@ import { GameBet } from "../../game_logic/GameRoundState";
 import { CardCombinationType } from "../../game_logic/CardCombinations";
 import { zGameWinnerResult, zRoundScore } from "../../game_logic/GameState";
 import { PlayerKey, zPlayerKey } from "../../game_logic/PlayerKeys";
+import { ERROR_TYPES } from "../API";
 
 export const ServerEventType = {
     WAITING_4_JOIN: 'WAITING_4_JOIN',
@@ -184,10 +185,7 @@ export const zGameEndedEvent = createGameEventSchema(
 export type GameEndedEvent = z.infer<typeof zGameEndedEvent>;
 
 export const zErrorEvent = createGameEventSchema(
-    z.union([
-        z.literal(ServerEventType.BUSINESS_ERROR),
-        z.literal(ServerEventType.UNKNOWN_SERVER_ERROR)
-    ]),
+    z.nativeEnum(ERROR_TYPES),
     z.object({
         message: z.string(),
     })

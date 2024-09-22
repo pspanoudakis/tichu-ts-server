@@ -1,4 +1,5 @@
-import { z, ZodLiteral } from "zod";
+import { z, ZodError } from "zod";
+import { BusinessError } from "../game_logic/BusinessError";
 
 export const zCreateRoomRequest = z.object({
     winningScore: z.number()
@@ -10,27 +11,35 @@ export const zSessionIdResponse = z.object({
 });
 export type SessionIdResponse = z.infer<typeof zSessionIdResponse>;
 
-export const ErrorType = {
+export const ERROR_TYPES = {
     BUSINESS_ERROR: 'BUSINESS_ERROR',
     VALIDATION_ERROR: 'VALIDATION_ERROR',
     INTERNAL_ERROR: 'INTERNAL_ERROR',
 } as const;
 
-function createErrorResponseSchema<ET extends string>(errorType: ET) {
-    return z.object({
-        errorType: z.literal(errorType),
-        message: z.string(),
-    });
+export type ErrorType = typeof ERROR_TYPES[keyof typeof ERROR_TYPES];
+
+export const zErrorResponse = z.object({
+    errorType: z.nativeEnum(ERROR_TYPES),
+    message: z.string(),
+});
+export type ErrorResponse = z.infer<typeof zErrorResponse>;
+
+export function extractErrorInfo(error: any) {
+    let errorType: ErrorType;
+    let message: string;
+    if (error instanceof BusinessError) {
+        errorType = ERROR_TYPES.BUSINESS_ERROR;
+        message = error.toString();
+    } else if (error instanceof ZodError) {
+        errorType = ERROR_TYPES.VALIDATION_ERROR;
+        message = JSON.stringify(error);
+    } else {
+        errorType = ERROR_TYPES.INTERNAL_ERROR;
+        message = error?.toString?.() ?? JSON.stringify(error);
+    }
+    return {
+        errorType,
+        message,
+    };
 }
-
-export const zBusinessErrorResponse =
-    createErrorResponseSchema(ErrorType.BUSINESS_ERROR);
-export type BusinessErrorResponse = z.infer<typeof zBusinessErrorResponse>;
-
-export const zValidationErrorResponse = 
-    createErrorResponseSchema(ErrorType.VALIDATION_ERROR);
-export type ValidationErrorResponse = z.infer<typeof zValidationErrorResponse>;
-
-export const zInternalErrorResponse =
-    createErrorResponseSchema(ErrorType.INTERNAL_ERROR);
-export type InternalErrorResponse = z.infer<typeof zInternalErrorResponse>;

@@ -3,8 +3,13 @@ import { Server } from "socket.io";
 import { BusinessError } from "./game_logic/BusinessError";
 import { GameSession } from "./GameSession";
 import express, { Response as ExpressResponse } from "express";
-import { ZodError } from "zod";
-import { BusinessErrorResponse, CreateRoomRequest, ErrorType, InternalErrorResponse, SessionIdResponse, ValidationErrorResponse, zCreateRoomRequest } from "./schemas/API";
+import {
+    CreateRoomRequest,
+    ERROR_TYPES,
+    extractErrorInfo,
+    SessionIdResponse,
+    zCreateRoomRequest
+} from "./schemas/API";
 
 export class GameServer {
 
@@ -60,28 +65,17 @@ export class GameServer {
         try {
             res.status(200).json(bodyCreator());
         } catch (err) {
-            if (err instanceof BusinessError) {
-                const rb: BusinessErrorResponse = {
-                    errorType: ErrorType.BUSINESS_ERROR,
-                    message: err.toString(),
-                };
-                res.status(400).json(rb);
+            const { errorType, message } = extractErrorInfo(err);
+            if (errorType === ERROR_TYPES.INTERNAL_ERROR) {
+                res.status(500);
+                console.log(message);
+            } else {
+                res.status(400);
             }
-            else if (err instanceof ZodError) {
-                const rb: ValidationErrorResponse = {
-                    errorType: ErrorType.VALIDATION_ERROR,
-                    message: err.toString(),
-                };
-                res.status(400).json(rb);
-            }
-            else {
-                const rb: InternalErrorResponse = {
-                    errorType: ErrorType.INTERNAL_ERROR,
-                    message: err?.toString?.() ?? String(err),
-                };
-                res.status(500).json(rb);
-                console.error(rb.message);
-            }
+            res.json({
+                errorType,
+                message,
+            });
         }
     }
 
