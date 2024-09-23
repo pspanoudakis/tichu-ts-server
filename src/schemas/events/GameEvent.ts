@@ -14,7 +14,7 @@ export function createGameEventSchema<
     return z.object({
         playerKey: z.optional(zPlayerKey),
         eventType: eventTypeSchema,
-        data: dataTypeSchema
+        data: dataTypeSchema,
     });
 };
 export function createEmptyGameEventSchema<EventType extends z.ZodTypeAny>

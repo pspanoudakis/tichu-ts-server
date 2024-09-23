@@ -66,7 +66,7 @@ export class GameState {
     private team13TotalPoints = 0;
     readonly winningScore: number;
     private status: GameStatus = GameStatus.INIT;
-    private currentRound = new GameRoundState();
+    private _currentRound?: GameRoundState;
     private emitToPlayer: PlayerEventEmitter;
     private emitToAll: GlobalEventEmitter;
 
@@ -84,6 +84,12 @@ export class GameState {
         if (!this._result)
             throw new BusinessError('Game Result not decided yet.');
         return this._result;
+    }
+
+    private get currentRound() {
+        if (!this._currentRound)
+            throw new BusinessError('Current Game round not initialized.');
+        return this._currentRound;
     }
 
     get isGameOver() {
@@ -132,6 +138,7 @@ export class GameState {
     }
 
     private onGameRoundStarted() {
+        this._currentRound = new GameRoundState();
         for (const key of PLAYER_KEYS) {
             const player = this.currentRound.players[key];
             this.emitToPlayer<GameRoundStartedEvent>(key, {
@@ -246,7 +253,6 @@ export class GameState {
             });
             this.onGamePossiblyOver();
             if (!this.isGameOver) {
-                this.currentRound = new GameRoundState();
                 this.onGameRoundStarted();
             } 
         }
