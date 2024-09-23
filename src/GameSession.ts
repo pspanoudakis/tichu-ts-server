@@ -185,10 +185,12 @@ export class GameSession {
                 playerKey: playerKey,
                 data: {
                     winningScore: this.gameState.winningScore,
-                    presentPlayers: PLAYER_KEYS.reduce((acc, k) => ({
-                        ...acc,
-                        [k]: this.clients[k]?.nickname,
-                    }), {})
+                    presentPlayers: PLAYER_KEYS.reduce<
+                        {[playerKey in PlayerKey]?: string}
+                    >((acc, k) => {
+                        acc[k] = this.clients[k]?.nickname;
+                        return acc;
+                    }, {})
                 },
             });
         });
