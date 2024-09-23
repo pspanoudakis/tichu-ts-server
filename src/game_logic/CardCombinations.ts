@@ -135,7 +135,9 @@ export class SingleCard extends CardCombination {
         return CardCombination.basicCompare(this, other);
     }
     compare(cards: Array<CardInfo>, requested: string) {
-        return CardCombination.basicCompare(this, SingleCard.getStrongestRequested(cards, requested));
+        return CardCombination.basicCompare(
+            this, SingleCard.getStrongestRequested(cards, requested)
+        );
     }
 }
 
@@ -177,7 +179,8 @@ export class CardCouple extends CardCombination {
             return null;
         }
         if (cards[0].name !== cards[1].name) {
-            const phoenixIndex = cards.findIndex(card => card.name === specialCards.PHOENIX);
+            const phoenixIndex =
+                cards.findIndex(card => card.name === specialCards.PHOENIX);
             if (phoenixIndex !== -1) {
                 const otherIndex = (phoenixIndex + 1) % 2;
                 if (!specialCardNames.includes(cards[otherIndex].name)) {
@@ -192,7 +195,9 @@ export class CardCouple extends CardCombination {
         return CardCombination.basicCompare(this, other);
     }
     compare(cards: Array<CardInfo>, requested: string) {
-        return CardCombination.basicCompare(this, CardCouple.getStrongestRequested(cards, requested));
+        return CardCombination.basicCompare(
+            this, CardCouple.getStrongestRequested(cards, requested)
+        );
     }
 }
 
@@ -243,7 +248,9 @@ export class Triplet extends CardCombination {
         return CardCombination.basicCompare(this, other);
     }
     compare(cards: Array<CardInfo>, requested: string) {
-        return CardCombination.basicCompare(this, Triplet.getStrongestRequested(cards, requested));
+        return CardCombination.basicCompare(
+            this, Triplet.getStrongestRequested(cards, requested)
+        );
     }
 }
 
@@ -359,7 +366,9 @@ export class Steps extends CardCombination {
         return CardCombination.altCompare(this, other);
     }
     compare(cards: Array<CardInfo>, requested: string, length: number) {
-        return CardCombination.altCompare(this, Steps.getStrongestRequested(cards, requested, length));
+        return CardCombination.altCompare(
+            this, Steps.getStrongestRequested(cards, requested, length)
+        );
     }
 }
 
@@ -452,7 +461,9 @@ export class Kenta extends CardCombination {
         return CardCombination.altCompare(this, other);
     }
     compare(cards: Array<CardInfo>, requested: string, length: number) {
-        return CardCombination.altCompare(this, Kenta.getStrongestRequested(cards, requested, length));
+        return CardCombination.altCompare(
+            this, Kenta.getStrongestRequested(cards, requested, length)
+        );
     }
 }
 
@@ -504,7 +515,9 @@ export class FullHouse extends CardCombination {
         return CardCombination.basicCompare(this, other);
     }
     compare(cards: Array<CardInfo>, requested: string) {
-        return CardCombination.basicCompare(this, FullHouse.getStrongestRequested(cards, requested));
+        return CardCombination.basicCompare(
+            this, FullHouse.getStrongestRequested(cards, requested)
+        );
     }
     /**
      * Attempts to find the strongest `FullHouse` combination that can be created from

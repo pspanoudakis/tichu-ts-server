@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
     DropBombEvent,
     GiveDragonEvent,
@@ -9,7 +10,7 @@ import {
     RequestCardEvent,
     RevealAllCardsEvent,
     TradeCardsEvent
-} from "../events/ClientEvents";
+} from "../schemas/events/ClientEvents";
 import {
     AllCardsRevealedEvent,
     BetPlacedEvent,
@@ -28,13 +29,13 @@ import {
     TableRoundEndedEvent,
     TableRoundStartedEvent,
     TurnPassedEvent
-} from "../events/ServerEvents";
+} from "../schemas/events/ServerEvents";
 import { EventBase } from "../GameSession";
-import { BusinessError } from "../responses/BusinessError";
+import { BusinessError } from "./BusinessError";
 import { UnexpectedCombinationType } from "./CardCombinations";
 import { CardInfo } from "./CardInfo";
 import { GameRoundState } from "./GameRoundState";
-import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS, TeamKey } from "./PlayerState";
+import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS, zTeamKeySchema } from "./PlayerKeys";
 
 enum GameStatus {
     INIT = 'INIT',
@@ -42,12 +43,16 @@ enum GameStatus {
     OVER = 'OVER'
 }
 
-export class RoundScore {
-    team02 = 0;
-    team13 = 0;
-}
+export const zRoundScore = z.object({
+    team02: z.number(),
+    team13: z.number(),
+});
+export type RoundScore = z.infer<typeof zRoundScore>;
 
-export type GameWinnerResult = TeamKey | 'TIE';
+export const zGameWinnerResult = z.union([
+    zTeamKeySchema, z.literal('TIE')
+]);
+export type GameWinnerResult = z.infer<typeof zGameWinnerResult>;
 
 type PlayerEventEmitter =
     <T extends EventBase>(playerKey: PlayerKey, e: T) => void;
@@ -61,7 +66,7 @@ export class GameState {
     private team13TotalPoints = 0;
     readonly winningScore: number;
     private status: GameStatus = GameStatus.INIT;
-    private currentRound = new GameRoundState();
+    private _currentRound?: GameRoundState;
     private emitToPlayer: PlayerEventEmitter;
     private emitToAll: GlobalEventEmitter;
 
@@ -79,6 +84,12 @@ export class GameState {
         if (!this._result)
             throw new BusinessError('Game Result not decided yet.');
         return this._result;
+    }
+
+    private get currentRound() {
+        if (!this._currentRound)
+            throw new BusinessError('Current Game round not initialized.');
+        return this._currentRound;
     }
 
     get isGameOver() {
@@ -127,6 +138,7 @@ export class GameState {
     }
 
     private onGameRoundStarted() {
+        this._currentRound = new GameRoundState();
         for (const key of PLAYER_KEYS) {
             const player = this.currentRound.players[key];
             this.emitToPlayer<GameRoundStartedEvent>(key, {
@@ -241,7 +253,6 @@ export class GameState {
             });
             this.onGamePossiblyOver();
             if (!this.isGameOver) {
-                this.currentRound = new GameRoundState();
                 this.onGameRoundStarted();
             } 
         }

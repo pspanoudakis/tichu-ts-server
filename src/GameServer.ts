@@ -1,10 +1,15 @@
 import http from "http";
 import { Server } from "socket.io";
-import { BusinessError } from "./responses/BusinessError";
-import { CreateRoomEvent } from "./events/ClientEvents";
+import { BusinessError } from "./game_logic/BusinessError";
 import { GameSession } from "./GameSession";
 import express, { Response as ExpressResponse } from "express";
-import { JoinGameResponse, RoomCreatedResponse } from "./responses/ServerResponses";
+import {
+    CreateRoomRequest,
+    ERROR_TYPES,
+    extractErrorInfo,
+    SessionIdResponse,
+    zCreateRoomRequest
+} from "./schemas/API";
 
 export class GameServer {
 
@@ -19,18 +24,16 @@ export class GameServer {
     private constructor() {
         this.express.use(express.json());
         this.express.post('/', (req, res) => {
-            // validate...
             GameServer.responseCreator(res, () => 
-                this.handleCreateRoomEvent(req.body as CreateRoomEvent)
+                this.handleCreateRoomEvent(zCreateRoomRequest.parse(req.body))
             );
         });
-        this.express.post('/join', (req, res) => {
-            // validate...
+        this.express.get('/join', (_, res) => {
             GameServer.responseCreator(res, () => 
                 this.handleJoinGameEvent()
             );
         });
-        this.express.get('/', (req, res) => {
+        this.express.get('/', (_, res) => {
             res.send('Hello from Node TS!');
         });
         this.httpServer = http.createServer(this.express);
@@ -58,13 +61,19 @@ export class GameServer {
 
     static responseCreator(res: ExpressResponse, bodyCreator: () => any) {
         try {
-            res.json(bodyCreator()).status(200);
+            res.status(200).json(bodyCreator());
         } catch (err) {
-            if (err instanceof BusinessError)
-                res.status(400);
-            else
+            const { errorType, message } = extractErrorInfo(err);
+            if (errorType === ERROR_TYPES.INTERNAL_ERROR) {
                 res.status(500);
-            res.send({ error: String(err) });
+                console.log(message);
+            } else {
+                res.status(400);
+            }
+            res.json({
+                errorType,
+                message,
+            });
         }
     }
 
@@ -72,10 +81,12 @@ export class GameServer {
         this.httpServer.listen(port, callback);
     }
 
-    handleCreateRoomEvent(e: CreateRoomEvent): RoomCreatedResponse {
+    handleCreateRoomEvent(req: CreateRoomRequest): SessionIdResponse {
         // Create new session
         const sessionId = this.generateSessionId();
-        const session = new GameSession(sessionId, this.socketServer, e);
+        const session = new GameSession(
+            sessionId, this.socketServer, req.winningScore
+        );
         if (this.sessions.has(sessionId))
             throw new Error(`Regenerated existing session id: '${sessionId}'`);
         this.sessions.set(sessionId, session);
@@ -85,7 +96,7 @@ export class GameServer {
         };
     }
 
-    handleJoinGameEvent(): JoinGameResponse {
+    handleJoinGameEvent(): SessionIdResponse {
         for (const session of this.sessions.values()) {
             if (!session.isFull()) {
                 return {

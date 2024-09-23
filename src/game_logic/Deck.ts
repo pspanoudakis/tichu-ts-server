@@ -1,4 +1,10 @@
-import { cardColors, CardInfo, letterValues, PhoenixCard, specialCards } from "./CardInfo";
+import {    
+    cardColors,
+    CardInfo,
+    letterValues,
+    PhoenixCard,
+    specialCards
+} from "./CardInfo";
 
 /** Represents a shuffled card deck. */
 export class Deck {
