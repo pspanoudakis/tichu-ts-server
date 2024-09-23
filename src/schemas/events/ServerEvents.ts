@@ -2,14 +2,13 @@ import { z } from "zod";
 import {
     createEmptyGameEventSchema,
     createGameEventSchema,
-    GameEvent,
     zCardKey, 
     zCardName
 } from "./GameEvent";
 import { GameBet } from "../../game_logic/GameRoundState";
 import { CardCombinationType } from "../../game_logic/CardCombinations";
 import { zGameWinnerResult, zRoundScore } from "../../game_logic/GameState";
-import { PlayerKey, zPlayerKey } from "../../game_logic/PlayerKeys";
+import { PLAYER_KEYS, PlayerKey, zPlayerKey } from "../../game_logic/PlayerKeys";
 import { ERROR_TYPES } from "../API";
 
 export const ServerEventType = {
@@ -37,14 +36,16 @@ export const ServerEventType = {
     CLIENT_STATE_SYNC: 'CLIENT_STATE_SYNC',
 } as const;
 
-export type WaitingForJoinEvent = GameEvent<
-    typeof ServerEventType.WAITING_4_JOIN, {
-        presentPlayers: {
-            [playerKey in PlayerKey]?: string
-        },
-        winningScore: number
-    }    
->;
+export const zWaitingForJoinEvent = z.object({
+    presentPlayers: z.object(PLAYER_KEYS.reduce<
+        {[playerKey in PlayerKey]? : z.ZodOptional<z.ZodString>}
+    >((acc, k) => {
+      acc[k] = z.string().optional();
+      return acc;
+    }, {})),
+    winningScore: z.number(),
+  });
+export type WaitingForJoinEvent = z.infer<typeof zWaitingForJoinEvent>;
 
 export const zPlayerJoinedEvent = createGameEventSchema(
     z.literal(ServerEventType.PLAYER_JOINED),

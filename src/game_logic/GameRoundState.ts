@@ -11,7 +11,7 @@ import {
 import { CardInfo, specialCards } from "./CardInfo";
 import { Deck } from "./Deck";
 import { RoundScore } from "./GameState";
-import { PLAYER_KEYS, PlayerKey } from "./PlayerKeys";
+import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS } from "./PlayerKeys";
 import { PlayerState } from "./PlayerState";
 
 /** Possible player bet points */
@@ -480,15 +480,11 @@ export class GameRoundState {
      */
     mustEndGameRound() {
         // End the round if both players of a team have no cards left
-        if (this.players[PLAYER_KEYS[0]].getNumCards() === 0 &&
-            this.players[PLAYER_KEYS[2]].getNumCards() === 0) {
-            return true;
-        }
-        if (this.players[PLAYER_KEYS[1]].getNumCards() === 0 &&
-            this.players[PLAYER_KEYS[3]].getNumCards() === 0) {
-            return true;
-        }
-        return false;
+        return Object.values(TEAM_KEYS).some(
+            tk => TEAM_PLAYERS[tk].every(
+                pk => this.players[pk].getNumCards() === 0
+            )
+        );
     }
 
     endGameRoundOrElseThrow() {
