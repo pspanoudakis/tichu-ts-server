@@ -36,15 +36,18 @@ export const ServerEventType = {
     CLIENT_STATE_SYNC: 'CLIENT_STATE_SYNC',
 } as const;
 
-export const zWaitingForJoinEvent = z.object({
-    presentPlayers: z.object(PLAYER_KEYS.reduce<
-        {[playerKey in PlayerKey]? : z.ZodOptional<z.ZodString>}
-    >((acc, k) => {
-      acc[k] = z.string().optional();
-      return acc;
-    }, {})),
-    winningScore: z.number(),
-  });
+export const zWaitingForJoinEvent = createGameEventSchema(
+    z.literal(ServerEventType.WAITING_4_JOIN),
+    z.object({
+        presentPlayers: z.object(PLAYER_KEYS.reduce<
+            {[playerKey in PlayerKey]? : z.ZodOptional<z.ZodString>}
+        >((acc, k) => {
+            acc[k] = z.string().optional();
+            return acc;
+        }, {})),
+        winningScore: z.number(),
+    })
+);
 export type WaitingForJoinEvent = z.infer<typeof zWaitingForJoinEvent>;
 
 export const zPlayerJoinedEvent = createGameEventSchema(
