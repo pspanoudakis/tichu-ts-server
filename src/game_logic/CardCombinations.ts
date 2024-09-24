@@ -1,6 +1,12 @@
 /** Helper interfaces for combination methods */
 
-import { cardColorValues, getNormalCardValueByName, normalCardKeys, specialCardNames, SpecialCards } from "./CardConfig";
+import {
+    cardColorValues,
+    getNormalCardValueByName,
+    normalCardKeys,
+    specialCardNames,
+    SpecialCards
+} from "./CardConfig";
 import { CardInfo, PhoenixCard } from "./CardInfo";
 
 interface CardColorOccurencesMap {

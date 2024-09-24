@@ -1,6 +1,10 @@
-import { CardColor, getNormalCardValueByName, NormalCardConfig, SpecialCards, zNormalCardName } from "./CardConfig";
-import { BusinessError } from "./BusinessError";
-import { UnexpectedCombinationType } from "./CardCombinations";
+import {
+    CardColor,
+    getNormalCardValueByName,
+    NormalCardConfig,
+    SpecialCards,
+    zNormalCardName
+} from "./CardConfig";
 
 /**
  * Represents a specific Card, along with its information.
@@ -43,7 +47,7 @@ export class CardInfo {
             default:
                 this.value = getNormalCardValueByName(name);
                 if (!color)
-                    throw new BusinessError(
+                    throw new Error(
                         `Color is required to initialize non-special card.`
                     );
                 try {
@@ -51,6 +55,7 @@ export class CardInfo {
                         zNormalCardName.parse(name)
                     ][color].key;
                 } catch (err) {
+                    console.error(err);
                     throw new UnknownCardNameError(name);
                 }
                 break;

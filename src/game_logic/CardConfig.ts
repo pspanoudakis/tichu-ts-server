@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { BusinessError } from "./BusinessError";
 
 export const CardColor = {
     BLACK: 'black',
@@ -346,5 +345,5 @@ export function getNormalCardValueByName(name: string) {
     const isLetterName = zLetterCardName.safeParse(name);
     if (isLetterName.success)
         return LetterCardValues[isLetterName.data];
-    throw new BusinessError(`'${name}' is not a valid normal card name.`);
+    throw new Error(`'${name}' is not a valid normal card name.`);
 }
