@@ -1,6 +1,7 @@
 import { PlaceBetEvent, TradeCardsEvent } from "../schemas/events/ClientEvents";
 import { BusinessError } from "./BusinessError";
-import { CardInfo, specialCards } from "./CardInfo";
+import { SpecialCards } from "./CardConfig";
+import { CardInfo } from "./CardInfo";
 import { GameBet } from "./GameRoundState";
 import { PlayerKey } from "./PlayerKeys";
 
@@ -155,7 +156,7 @@ export class PlayerState {
     }
 
     hasMahjong() {
-        return Boolean(this.findCard(c => c.name === specialCards.MAHJONG));
+        return Boolean(this.findCard(c => c.name === SpecialCards.Mahjong));
     }
 
     getCardsByKeys(cardKeys: string[]) {

@@ -8,7 +8,8 @@ import {
     SingleCard,
     UnexpectedCombinationType
 } from "./CardCombinations";
-import { CardInfo, specialCards } from "./CardInfo";
+import { SpecialCards } from "./CardConfig";
+import { CardInfo } from "./CardInfo";
 import { Deck } from "./Deck";
 import { RoundScore } from "./GameState";
 import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS } from "./PlayerKeys";
@@ -138,7 +139,7 @@ export class GameRoundState {
         selectedCards: CardInfo[], combination: CardCombination
     ) {
         // If there is a pending mahjong request, the player must play the Mahjong
-        if (!selectedCards.some(card => card.name === specialCards.MAHJONG)) {
+        if (!selectedCards.some(card => card.name === SpecialCards.Mahjong)) {
             throw new BusinessError("The Mahjong must be played after a Mahjong request");
         }
         if (!this.isPlayable(combination)) {
@@ -300,7 +301,7 @@ export class GameRoundState {
             this.pendingMahjongRequest = '';
             
             let nextPlayerIndex = (this._currentPlayerIndex + 1) % 4;
-            if (this.table.currentCards[0].name === specialCards.DOGS) {
+            if (this.table.currentCards[0].name === SpecialCards.Dogs) {
                 nextPlayerIndex = (this._currentPlayerIndex + 2) % 4;
                 this.table.currentCards = [];
                 this.table.currentCombination = null;
@@ -462,7 +463,7 @@ export class GameRoundState {
      */
     endTableRound() {
         // Preparing for new round
-        if (this.table.currentCards[0].name === specialCards.DRAGON) {
+        if (this.table.currentCards[0].name === SpecialCards.Dragon) {
             this._currentPlayerIndex = this.table.currentCardsOwnerIndex;
             this._pendingDragonToBeGiven = true;
             return;
@@ -537,7 +538,7 @@ export class GameRoundState {
             if (!this.gameRoundWinnerKey)
                 throw new Error('Unexpected Error: Game Round Winner not set.');
             if (this.table.currentCardsOwnerIndex === index) {
-                if (this.table.currentCards[0].name !== specialCards.DRAGON) {
+                if (this.table.currentCards[0].name !== SpecialCards.Dragon) {
                     playerHeaps[key].push(
                         ...this.table.currentCards,
                         ...this.table.previousCards
@@ -545,7 +546,7 @@ export class GameRoundState {
                 }
             }
             if (this.players[key].getNumCards() > 0) {
-                if (this.table.currentCards[0].name === specialCards.DRAGON) {
+                if (this.table.currentCards[0].name === SpecialCards.Dragon) {
                     playerHeaps[this.gameRoundWinnerKey].push(
                         ...this.table.currentCards,
                         ...this.table.previousCards

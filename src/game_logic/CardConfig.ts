@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { BusinessError } from "./BusinessError";
+
 export const CardColor = {
     BLACK: 'black',
     RED: 'red',
@@ -5,10 +8,28 @@ export const CardColor = {
     GREEN: 'green'
 } as const;
 
-type NumericCardName = 
-    '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10';
+export const cardColorValues = Object.values(CardColor);
 
-type LetterCardName = 'J' | 'Q' | 'K' | 'A';
+const zNumericCardName = z.union([
+    z.literal('2'),
+    z.literal('3'),
+    z.literal('4'),
+    z.literal('5'),
+    z.literal('6'),
+    z.literal('7'),
+    z.literal('8'),
+    z.literal('9'),
+    z.literal('10'),
+]);
+type NumericCardName = z.infer<typeof zNumericCardName>;
+
+const zLetterCardName = z.union([
+    z.literal('J'),
+    z.literal('Q'),
+    z.literal('K'),
+    z.literal('A'),
+]);
+type LetterCardName = z.infer<typeof zLetterCardName>;
 export const LetterCardValues: {
     [l in LetterCardName]: number
 } = {
@@ -28,10 +49,12 @@ export const SpecialCards: {
     Mahjong: 'Mahjong',
     Phoenix: 'Phoenix',
 } as const;
+export const specialCardNames = Object.values(SpecialCards);
 
+export const zNormalCardName = z.union([zNumericCardName, zLetterCardName]);
 type NormalCardName = NumericCardName | LetterCardName;
 
-const NormalCardConfig: {
+export const NormalCardConfig: {
     [name in NormalCardName]: {
         [color in typeof CardColor[keyof typeof CardColor]]: {
             key: string,
@@ -274,6 +297,8 @@ const NormalCardConfig: {
         },
     },
 } as const;
+export const normalCardKeys = Object.keys(NormalCardConfig);
+export const reversedCardKeys = Array.from(normalCardKeys).reverse();
 
 const SpecialCardConfig: {
     [name in SpecialCardName]: {
@@ -312,4 +337,14 @@ const CardKeyToImgMap: ReadonlyMap<string, string> = new Map(Object.entries({
 
 export function getCardImgByKey(key: string) {
     return CardKeyToImgMap.get(key);
+}
+
+export function getNormalCardValueByName(name: string) {
+    const isNumericName = zNumericCardName.safeParse(name);
+    if (isNumericName.success)
+        return Number(isNumericName.data);
+    const isLetterName = zLetterCardName.safeParse(name);
+    if (isLetterName.success)
+        return LetterCardValues[isLetterName.data];
+    throw new BusinessError(`'${name}' is not a valid normal card name.`);
 }
