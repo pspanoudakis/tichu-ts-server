@@ -1,5 +1,5 @@
 import {    
-    cardColors,
+    CardColors,
     CardInfo,
     letterValues,
     PhoenixCard,
@@ -21,12 +21,12 @@ export class Deck {
 
         // For each other card name, place 1 card for each color
         for (let i = 2; i <= 10; i++) {
-            for (const color of Object.values(cardColors)) {
+            for (const color of Object.values(CardColors)) {
                 this.cards.push(new CardInfo(i.toString(), color));
             }
         }
         for (const letter of letterValues.keys()) {
-            for (const color of Object.values(cardColors)) {
+            for (const color of Object.values(CardColors)) {
                 this.cards.push(new CardInfo(letter, color));
             }
         }

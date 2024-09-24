@@ -1,16 +1,16 @@
 /** Possible card colors. */
-export const cardColors = {
+export const CardColors = {
     BLACK: 'black',
     RED: 'red',
     BLUE: 'blue',
     GREEN: 'green'
-}
+} as const;
 
 // Storing color values here since they are widely used by the app.
-export const cardColorValues = Object.values(cardColors);
+export const cardColorValues = Object.values(CardColors);
 
 /** Each letter card title is mapped to its value here. */
-export const letterValues: Map<string, number> = new Map(Object.entries({
+export const letterValues: ReadonlyMap<string, number> = new Map(Object.entries({
     'J': 11,
     'Q': 12,
     'K': 13,
@@ -50,7 +50,7 @@ export class CardInfo {
     name: string;
     /** The value of the card. */
     value: number;
-    /** The value of the card (see {@link cardColors}) */
+    /** The value of the card (see {@link CardColors}) */
     color: string | '';
     /**
      * The unique key of the card. This is used by the client to refer
