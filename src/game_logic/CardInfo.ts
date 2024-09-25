@@ -11,16 +11,16 @@ import {
  */
 export class CardInfo {
     /** The card 'title' (letter, number or special name). */
-    name: string;
+    readonly name: string;
     /** The value of the card. */
-    value: number;
+    readonly value: number;
     /** The value of the card (see {@link CardColor}) */
-    color: string | '';
+    readonly color: string | '';
     /**
      * The unique key of the card. This is used by the client to refer
      * e.g. to the selected cards to be played.
      */
-    key: string;
+    readonly key: string;
     /** Indicates whether the card is currently selected or not. */
     isSelected = false;
 
@@ -75,10 +75,10 @@ export class CardInfo {
         let valueA = a.value;
         let valueB = b.value;
         if (a instanceof PhoenixCard) {
-            valueA = a.tempValue;
+            valueA = a.altValue;
         }
         else if (b instanceof PhoenixCard) {
-            valueB = b.tempValue;
+            valueB = b.altValue;
         }
         return valueB - valueA;
     }
@@ -120,14 +120,27 @@ export class CardInfo {
  * It may not be used to replace a card with specific color.
  */
 export class PhoenixCard extends CardInfo {
-    tempValue: number;
-    tempName: string;
+    private _altValue: number;
+    private _altName: string;
 
     constructor() {
         super(SpecialCards.Phoenix);
-        this.tempName = '';
-        this.tempValue = 0.5;
+        this._altName = '';
+        this._altValue = 0.5;
     }
+
+    get altValue() {
+        return this._altValue;
+    }
+
+    get altName() {
+        return this._altName;
+    }
+
+    setAlt(name: string) {
+        this._altValue = getNormalCardValueByName(name);
+        this._altName = name;
+    }    
 }
 
 /**

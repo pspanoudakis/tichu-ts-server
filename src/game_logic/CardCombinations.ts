@@ -1,5 +1,3 @@
-/** Helper interfaces for combination methods */
-
 import {
     cardColorValues,
     getNormalCardValueByName,
@@ -451,14 +449,14 @@ export class Kenta extends CardCombination {
             let phoenix = cards.find(card => card.name === SpecialCards.Phoenix);
             let topValue = cards[0].value;
             if (phoenix instanceof PhoenixCard) {
-                topValue = Math.max(phoenix.tempValue, topValue);
+                topValue = Math.max(phoenix.altValue, topValue);
             }
             let expectedValue = topValue + 1;
             for (const card of cards) {
                 expectedValue--;
                 if (card.value !== expectedValue && card !== phoenix) {
-                    if (!(phoenix instanceof PhoenixCard) || phoenix.tempValue !== expectedValue
-                        || card.value !== phoenix.tempValue - 1) {
+                    if (!(phoenix instanceof PhoenixCard) || phoenix.altValue !== expectedValue
+                        || card.value !== phoenix.altValue - 1) {
 
                         return null;
                     }
@@ -498,13 +496,13 @@ export class FullHouse extends CardCombination {
             let cardOccurences: CardNameOccurencesMap = {};
             for (const card of cards) {
                 if (card instanceof PhoenixCard) {
-                    if (card.tempName === "") {
+                    if (card.altName === "") {
                         return null;
                     }
-                    if (cardOccurences[card.tempName] === undefined) {
-                        cardOccurences[card.tempName] = 0;
+                    if (cardOccurences[card.altName] === undefined) {
+                        cardOccurences[card.altName] = 0;
                     }
-                    cardOccurences[card.tempName]++;
+                    cardOccurences[card.altName]++;
                 }
                 else if (cardOccurences[card.name] === undefined) {
                     cardOccurences[card.name] = 1;
