@@ -119,9 +119,7 @@ export class GameSession {
                 try {
                     e = zJoinGameEvent.parse(event);
                 } catch (error) {
-                    return GameSession.emitError(socket, new BusinessError(
-                        `Validation Error: ${error?.toString}`
-                    ));
+                    return GameSession.emitError(socket, error);
                 }
                 try {
                     client.joinGame();

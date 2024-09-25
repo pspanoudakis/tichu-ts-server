@@ -1,46 +1,10 @@
-/** Possible card colors. */
-export const cardColors = {
-    BLACK: 'black',
-    RED: 'red',
-    BLUE: 'blue',
-    GREEN: 'green'
-}
-
-// Storing color values here since they are widely used by the app.
-export const cardColorValues = Object.values(cardColors);
-
-/** Each letter card title is mapped to its value here. */
-export const letterValues: Map<string, number> = new Map(Object.entries({
-    'J': 11,
-    'Q': 12,
-    'K': 13,
-    'A': 14,
-}));
-
-export const normalCardKeys = (function () {
-    let arr = [];
-    for (let i = 2; i <= 10; i++) arr.push(i.toString());
-    return arr;
-})();
-export const reversedCardKeys = Array.from(normalCardKeys).reverse();
-
-/** Special card titles. */
-export const specialCards = {
-    DOGS: 'Dogs',
-    PHOENIX: 'Phoenix',
-    MAHJONG: 'Mahjong',
-    DRAGON: 'Dragon'
-};
-export const specialCardNames = Object.values(specialCards);
-
-export function getValueByCardName(name: string) {
-    return letterValues.get(name) ?? (function () {
-        const n = Number(name);
-        if (n < 2 || n > 10 || isNaN(n)) 
-            throw new UnknownCardNameError(name);
-        return n;
-    })();
-}
+import {
+    CardColor,
+    getNormalCardValueByName,
+    NormalCardConfig,
+    SpecialCards,
+    zNormalCardName
+} from "./CardConfig";
 
 /**
  * Represents a specific Card, along with its information.
@@ -50,7 +14,7 @@ export class CardInfo {
     name: string;
     /** The value of the card. */
     value: number;
-    /** The value of the card (see {@link cardColors}) */
+    /** The value of the card (see {@link CardColor}) */
     color: string | '';
     /**
      * The unique key of the card. This is used by the client to refer
@@ -60,33 +24,44 @@ export class CardInfo {
     /** Indicates whether the card is currently selected or not. */
     isSelected = false;
 
-    constructor(name: string, color = '') {
+    constructor(name: string, color?: typeof CardColor [keyof typeof CardColor]) {
         switch (name) {
-            case specialCards.DOGS:
-                this.key = specialCards.DOGS;
+            case SpecialCards.Dogs:
+                this.key = SpecialCards.Dogs;
                 /** By the book, Dogs card has zero value, but this tweak
                  * simplifies the combination logic. */
                 this.value = -2;
                 break;
-            case specialCards.PHOENIX:
-                this.key = specialCards.PHOENIX;
+            case SpecialCards.Phoenix:
+                this.key = SpecialCards.Phoenix;
                 this.value = 0.5;
                 break;
-            case specialCards.MAHJONG:
-                this.key = specialCards.MAHJONG;
+            case SpecialCards.Mahjong:
+                this.key = SpecialCards.Mahjong;
                 this.value = 1;
                 break;
-            case specialCards.DRAGON:
-                this.key = specialCards.DRAGON;
+            case SpecialCards.Dragon:
+                this.key = SpecialCards.Dragon;
                 this.value = 20;
                 break;
             default:
-                this.value = getValueByCardName(name);
-                this.key = name + "_" + color;
+                this.value = getNormalCardValueByName(name);
+                if (!color)
+                    throw new Error(
+                        `Color is required to initialize non-special card.`
+                    );
+                try {
+                    this.key = NormalCardConfig[
+                        zNormalCardName.parse(name)
+                    ][color].key;
+                } catch (err) {
+                    console.error(err);
+                    throw new UnknownCardNameError(name);
+                }
                 break;
         }
         this.name = name;
-        this.color = color;
+        this.color = color ?? '';
     };
 
     /**
@@ -122,10 +97,10 @@ export class CardInfo {
                 case 'K':
                     points += 10;
                     break;
-                case specialCards.DRAGON:
+                case SpecialCards.Dragon:
                     points += 25;
                     break;
-                case specialCards.PHOENIX:
+                case SpecialCards.Phoenix:
                     points -= 25;
                     break;
                 default:
@@ -149,7 +124,7 @@ export class PhoenixCard extends CardInfo {
     tempName: string;
 
     constructor() {
-        super(specialCards.PHOENIX);
+        super(SpecialCards.Phoenix);
         this.tempName = '';
         this.tempValue = 0.5;
     }
@@ -161,5 +136,9 @@ export class PhoenixCard extends CardInfo {
 class UnknownCardNameError extends Error {
     constructor(unknownName: string) {
         super(`Unknown Card Name: ${unknownName}`);
+    }
+
+    override toString() {
+        return `Unknown Card Name Error: ${this.message}`;
     }
 }

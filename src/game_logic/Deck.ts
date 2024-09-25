@@ -1,33 +1,21 @@
-import {    
-    cardColors,
-    CardInfo,
-    letterValues,
-    PhoenixCard,
-    specialCards
-} from "./CardInfo";
+import { cardColorValues, NormalCardConfig, SpecialCards } from "./CardConfig";
+import { CardInfo, PhoenixCard } from "./CardInfo";
 
 /** Represents a shuffled card deck. */
 export class Deck {
-    cards: Array<CardInfo>
+    cards: CardInfo[];
 
     constructor() {
         // Place all the special cards first
         this.cards = [
-            new CardInfo(specialCards.DOGS),
+            new CardInfo(SpecialCards.Dogs),
             new PhoenixCard(),
-            new CardInfo(specialCards.MAHJONG),
-            new CardInfo(specialCards.DRAGON),
+            new CardInfo(SpecialCards.Mahjong),
+            new CardInfo(SpecialCards.Dragon),
         ];
-
-        // For each other card name, place 1 card for each color
-        for (let i = 2; i <= 10; i++) {
-            for (const color of Object.values(cardColors)) {
-                this.cards.push(new CardInfo(i.toString(), color));
-            }
-        }
-        for (const letter of letterValues.keys()) {
-            for (const color of Object.values(cardColors)) {
-                this.cards.push(new CardInfo(letter, color));
+        for (const name in NormalCardConfig) {
+            for (const color of cardColorValues) {
+                this.cards.push(new CardInfo(name, color));
             }
         }
         this.shuffle();

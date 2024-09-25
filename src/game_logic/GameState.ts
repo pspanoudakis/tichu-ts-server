@@ -228,7 +228,7 @@ export class GameState {
             player, e.data.selectedCardKeys
         );
         const combType = 
-            this.currentRound.table.currentCombination?.type;
+            this.currentRound.currentTableCombination?.type;
         if (!combType) throw new UnexpectedCombinationType (
             'Unexpected Error: Table combination is null'
         );
@@ -240,7 +240,7 @@ export class GameState {
                 numCardsRemainingInHand: player.getNumCards(),
                 tableCardKeys: GameState.mapCardsToKeys(player.getCards()),
                 requestedCardName: 
-                    this.currentRound.table.requestedCardName,
+                    this.currentRound.requestedCardName,
             }
         });
         if (this.currentRound.mustEndGameRound()) {
@@ -260,7 +260,7 @@ export class GameState {
 
     onTurnPassed(playerKey: PlayerKey, e: PassTurnEvent) {
         const cardsOwnerIdx =
-            this.currentRound.table.currentCardsOwnerIndex;
+            this.currentRound.currentTableCardsOwnerIdx;
         this.currentRound
             .passTurnOrElseThrow(this.getPlayer(playerKey));
         this.emitToAll<TurnPassedEvent>({
@@ -271,7 +271,7 @@ export class GameState {
             this.emitToAll<PendingDragonDecisionEvent>({
                 eventType: ServerEventType.PENDING_DRAGON_DECISION,
             })
-        } else if (!this.currentRound.table.currentCombination) {
+        } else if (!this.currentRound.currentTableCombination) {
             this.emitToAll<TableRoundEndedEvent>({
                 eventType: ServerEventType.TABLE_ROUND_ENDED,
                 data: {

@@ -1,14 +1,13 @@
+/** Helper interfaces for combination methods */
+
 import {
     cardColorValues,
+    getNormalCardValueByName,
     normalCardKeys,
-    specialCards,
     specialCardNames,
-    CardInfo,
-    PhoenixCard,
-    getValueByCardName
-} from "./CardInfo";
-
-/** Helper interfaces for combination methods */
+    SpecialCards
+} from "./CardConfig";
+import { CardInfo, PhoenixCard } from "./CardInfo";
 
 interface CardColorOccurencesMap {
     [cardName: string]: Map<string, boolean>;
@@ -42,18 +41,31 @@ export enum CardCombinationType {
 export abstract class CardCombination {
 
     /** The combination type (see {@link CardCombinationType}) */
-    type: CardCombinationType;
+    private _type: CardCombinationType;
     /** The number of cards in the combination */
-    length: number;
+    private _length: number;
     /** The value of the top card in the combination */
-    value: any;
+    private _value: number;
 
     /** Creates a `CardCombination` with the given information. */
-    constructor(combination: CardCombinationType, len: number, val: any) {
-        this.type = combination;
-        this.length = len;
-        this.value = val;
+    constructor(combination: CardCombinationType, len: number, val: number) {
+        this._type = combination;
+        this._length = len;
+        this._value = val;
     }
+
+    get type() {
+        return this._type;
+    }
+
+    get length() {
+        return this._length;
+    }
+
+    get value() {
+        return this._value;
+    }
+
     /** 
      * Compares the provided combinations (used for constant length combination types).
      * @returns `0` if their values are equal, `> 0` if a > b, else `< 0`.
@@ -143,7 +155,7 @@ export class SingleCard extends CardCombination {
 
 /** 
  * Represents a combination of 2 cards with the same value.
- * No {@link specialCards} apart from the Phoenix may participate.
+ * No {@link SpecialCards} apart from the Phoenix may participate.
 */
 export class CardCouple extends CardCombination {
     constructor(cardValue: number) {
@@ -160,11 +172,11 @@ export class CardCouple extends CardCombination {
      * @returns The `CardCouple` combination, or `null` if it was not found.
      */
     static getStrongestRequested(cards: Array<CardInfo>, requestedCard: string) {
-        let hasPhoenix = cards.some(card => card.name === specialCards.PHOENIX);
+        let hasPhoenix = cards.some(card => card.name === SpecialCards.Phoenix);
         let targetCards = cards.filter(card => card.name === requestedCard);
         if (targetCards.length >= 2 ||
             (targetCards.length === 1 && hasPhoenix)) {
-            return new CardCouple(getValueByCardName(requestedCard));
+            return new CardCouple(getNormalCardValueByName(requestedCard));
         }
         return null;
     }
@@ -174,13 +186,13 @@ export class CardCouple extends CardCombination {
      * @returns The `CardCouple` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static create(cards: Array<CardInfo>) {
+    static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length !== 2) {
             return null;
         }
         if (cards[0].name !== cards[1].name) {
             const phoenixIndex =
-                cards.findIndex(card => card.name === specialCards.PHOENIX);
+                cards.findIndex(card => card.name === SpecialCards.Phoenix);
             if (phoenixIndex !== -1) {
                 const otherIndex = (phoenixIndex + 1) % 2;
                 if (!specialCardNames.includes(cards[otherIndex].name)) {
@@ -203,7 +215,7 @@ export class CardCouple extends CardCombination {
 
 /** 
  * Represents a combination of 3 cards with the same value.
- * No {@link specialCards} apart from the Phoenix may participate.
+ * No {@link SpecialCards} apart from the Phoenix may participate.
  */
 export class Triplet extends CardCombination {
     constructor(cardValue: number) {
@@ -220,11 +232,11 @@ export class Triplet extends CardCombination {
      * @returns The `Triplet` combination, or `null` if it was not found.
      */
     static getStrongestRequested(cards: Array<CardInfo>, requestedCard: string) {
-        let hasPhoenix = cards.some(card => card.name === specialCards.PHOENIX);
+        let hasPhoenix = cards.some(card => card.name === SpecialCards.Phoenix);
         let targetCards = cards.filter(card => card.name === requestedCard);
         if (targetCards.length >= 3 ||
             (targetCards.length === 2 && hasPhoenix)) {
-            return new Triplet(getValueByCardName(requestedCard));
+            return new Triplet(getNormalCardValueByName(requestedCard));
         }
         return null;
     }
@@ -234,11 +246,11 @@ export class Triplet extends CardCombination {
      * @returns The `Triplet` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static create(cards: Array<CardInfo>) {
+    static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length !== 3) {
             return null;
         }
-        let filteredCards = cards.filter(card => card.name !== specialCards.PHOENIX);
+        let filteredCards = cards.filter(card => card.name !== SpecialCards.Phoenix);
         if (filteredCards.some(card => card.name !== filteredCards[0].name)) {
             return null;
         }
@@ -257,7 +269,7 @@ export class Triplet extends CardCombination {
 
 /**
  * Represents a combination of 2 or more consecutive card couples (2 cards with the same value).
- * No {@link specialCards} apart from the Phoenix may participate.
+ * No {@link SpecialCards} apart from the Phoenix may participate.
  */
 export class Steps extends CardCombination {
 
@@ -285,7 +297,7 @@ export class Steps extends CardCombination {
                     cardOccurences.set(card.name, occurences + 1);
                 }
                 else if (phoenixUsed) {
-                    phoenixUsed = !(card.name === specialCards.PHOENIX);
+                    phoenixUsed = !(card.name === SpecialCards.Phoenix);
                 }
             }
             const requestedOccurences = cardOccurences.get(requested);
@@ -308,7 +320,7 @@ export class Steps extends CardCombination {
                         else { break; }
                     }
                     if (i < lowIndex) {
-                        return new Steps(getValueByCardName(normalCardKeys[highIndex]), length);
+                        return new Steps(getNormalCardValueByName(normalCardKeys[highIndex]), length);
                     }
                     highIndex = i - 1;
                     lowIndex = highIndex - length + 1;
@@ -323,13 +335,13 @@ export class Steps extends CardCombination {
      * @returns The `Steps` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static create(cards: Array<CardInfo>) {
+    static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length >= 4 && cards.length % 2 === 0) {
             let cardOccurences: Map<number, number> = new Map();
             let phoenixUsed = true;
             for (const card of cards) {
                 if (specialCardNames.includes(card.name)) {
-                    if (card.name !== specialCards.PHOENIX) {
+                    if (card.name !== SpecialCards.Phoenix) {
                         return null;
                     }
                     phoenixUsed = false;
@@ -374,7 +386,7 @@ export class Steps extends CardCombination {
 
 /**
  * Represents a combination of 5 or more consecutive value cards.
- * No {@link specialCards} apart from the Mahjong and the Phoenix may participate.
+ * No {@link SpecialCards} apart from the Mahjong and the Phoenix may participate.
  */
 export class Kenta extends CardCombination {
     constructor(topValue: number, length: number) {
@@ -401,7 +413,7 @@ export class Kenta extends CardCombination {
                     cardOccurences.set(card.name, occurences + 1);
                 }
                 else if (phoenixUsed) {
-                    phoenixUsed = !(card.name === specialCards.PHOENIX);
+                    phoenixUsed = !(card.name === SpecialCards.Phoenix);
                 }
             }
             if (cardOccurences.get(requested) !== undefined || !phoenixUsed) {
@@ -419,7 +431,7 @@ export class Kenta extends CardCombination {
                         }
                     }
                     if (i < lowIndex) {
-                        return new Kenta(getValueByCardName(normalCardKeys[highIndex]), length);
+                        return new Kenta(getNormalCardValueByName(normalCardKeys[highIndex]), length);
                     }
                     highIndex = i - 1;
                     lowIndex = highIndex - length + 1;
@@ -434,9 +446,9 @@ export class Kenta extends CardCombination {
      * @returns The `Kenta` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static create(cards: Array<CardInfo>) {
+    static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length > 4) {
-            let phoenix = cards.find(card => card.name === specialCards.PHOENIX);
+            let phoenix = cards.find(card => card.name === SpecialCards.Phoenix);
             let topValue = cards[0].value;
             if (phoenix instanceof PhoenixCard) {
                 topValue = Math.max(phoenix.tempValue, topValue);
@@ -469,11 +481,11 @@ export class Kenta extends CardCombination {
 
 /**
  * Represents a combination of a {@link Triplet} and a {@link CardCouple}.
- * No {@link specialCards} apart from the Phoenix may participate.
+ * No {@link SpecialCards} apart from the Phoenix may participate.
  */
 export class FullHouse extends CardCombination {
     constructor(mainCard: string) {
-        super(CardCombinationType.FULLHOUSE, 5, getValueByCardName(mainCard));
+        super(CardCombinationType.FULLHOUSE, 5, getNormalCardValueByName(mainCard));
     }
     /**
      * Attempts to create a `FullHouse` combination from the given cards.
@@ -481,7 +493,7 @@ export class FullHouse extends CardCombination {
      * @returns The `FullHouse` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static create(cards: Array<CardInfo>) {
+    static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length === 5) {
             let cardOccurences: CardNameOccurencesMap = {};
             for (const card of cards) {
@@ -545,7 +557,7 @@ export class FullHouse extends CardCombination {
                     }
                 }
                 else {
-                    phoenixUsed = !(card.name === specialCards.PHOENIX);
+                    phoenixUsed = !(card.name === SpecialCards.Phoenix);
                 }
             }
             if (requestedOccurences < 1) { return null; }
@@ -570,12 +582,12 @@ export class FullHouse extends CardCombination {
 
     static strongestRequestedFullHouse(cardOccurences: Map<string, number>, requestedCard: string,
         requestedOccurences: number, phoenixUsed: boolean) {
-        const requestedValue = getValueByCardName(requestedCard);
+        const requestedValue = getNormalCardValueByName(requestedCard);
         if (requestedOccurences === 3) {
             let eligible: string | undefined = undefined;
             for (const [cardName, occurences] of Array.from(cardOccurences)) {
                 if (cardName !== requestedCard) {
-                    const value = getValueByCardName(cardName);
+                    const value = getNormalCardValueByName(cardName);
                     if (occurences >= 3 || (occurences === 2 && !phoenixUsed)) {
                         if (value > requestedValue) {
                             return new FullHouse(cardName);
@@ -594,7 +606,7 @@ export class FullHouse extends CardCombination {
             for (const [cardName, occurences] of Array.from(cardOccurences)) {
                 if (cardName !== requestedCard) {
                     if ((occurences >= 3) || (occurences === 2 && !phoenixUsed)) {
-                        const value = getValueByCardName(cardName);
+                        const value = getNormalCardValueByName(cardName);
                         if (value < requestedValue && !phoenixUsed) {
                             return new FullHouse(requestedCard);
                         }
@@ -610,14 +622,14 @@ export class FullHouse extends CardCombination {
 /**
  * Represents a combination of either 4 same value cards,
  * or 5+ consecutive value cards of the same color.
- * No {@link specialCards} may participate.
+ * No {@link SpecialCards} may participate.
  */
 export class Bomb extends CardCombination {
     color: string;
 
     constructor(upperCard: string, lowerCard: string, color = '') {
-        const topValue = getValueByCardName(upperCard);
-        const lower = getValueByCardName(lowerCard);
+        const topValue = getNormalCardValueByName(upperCard);
+        const lower = getNormalCardValueByName(lowerCard);
         const length = topValue - lower + 1;
         super(CardCombinationType.BOMB, length > 1 ? length : 4, topValue);
         this.color = color;
@@ -629,7 +641,7 @@ export class Bomb extends CardCombination {
      * @returns The `Bomb` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static createBomb(cards: Array<CardInfo>) {
+    static createBomb(cards: ReadonlyArray<CardInfo>) {
         if (cards.length > 4) {
             // Kenta bomb
             let previousCardValue = cards[0].value;
@@ -847,13 +859,16 @@ export class Bomb extends CardCombination {
  * 
  * @returns The created combination, or `null` if it cannot be created.
  */
-export function createCombination(cards: Array<CardInfo>, tableCards: Array<CardInfo>) {
+export function createCombination(
+    cards: ReadonlyArray<CardInfo>,
+    tableCards: ReadonlyArray<CardInfo>
+) {
     let combination: CardCombination | null = null;
     switch (cards.length) {
         case 1:
             if (cards[0] instanceof PhoenixCard) {
                 if (tableCards.length > 0) {
-                    if (tableCards[0].name !== specialCards.DRAGON) {
+                    if (tableCards[0].name !== SpecialCards.Dragon) {
                         combination = new SingleCard(tableCards[0].value + 0.5);
                     }
                     // The Phoenix cannot be played on top of the Dragon, so the

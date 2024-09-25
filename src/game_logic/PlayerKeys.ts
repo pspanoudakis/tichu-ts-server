@@ -27,9 +27,3 @@ export const TEAM_PLAYERS = {
 export const PLAYER_KEYS = [
     ...Object.values(_PLAYER_KEYS)
 ] as const;
-// export const PLAYER_KEYS = [
-//     _PLAYER_KEYS.PLAYER1,
-//     _PLAYER_KEYS.PLAYER2,
-//     _PLAYER_KEYS.PLAYER3,
-//     _PLAYER_KEYS.PLAYER4
-// ] as const;
