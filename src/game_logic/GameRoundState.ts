@@ -38,7 +38,6 @@ export class GameRoundState {
     }
     private deck = new Deck();
     private _currentPlayerIndex = -1;
-    private pendingMahjongRequest = '';
     private _pendingDragonToBeGiven = false;
     private pendingBombToBePlayed = false;
     table: TableState = new TableState();
@@ -119,29 +118,12 @@ export class GameRoundState {
     }
 
     /**
-     * Performs all the checks that are demanded when there is a pending Mahjong request.
-     * Throws if any checks are not passed.
-     * @param selectedCards The current player's selected cards.
-     * @param combination The combination to be played.
-     */
-    private throwIfMahjongRequestCheckFailed(
-        selectedCards: CardInfo[], combination: CardCombination
-    ) {
-        // If there is a pending mahjong request, the player must play the Mahjong
-        if (!selectedCards.some(card => card.name === SpecialCards.Mahjong)) {
-            throw new BusinessError("The Mahjong must be played after a Mahjong request");
-        }
-        if (!this.isPlayable(combination)) {
-            throw new BusinessError("This combination cannot be played");
-        }
-    }
-
-    /**
     * Performs all the checks that are demanded when there is a pending Bomb to be played.
     * Throws if any checks are not passed.
     * @param combination The combination to be played.
     */
     private throwIfPendingBombCheckFailed(combination: CardCombination) {
+        if (!this.pendingBombToBePlayed) return;
         if (combination instanceof Bomb) {
             const tableCombination = this.table.currentCombination;
             if (tableCombination !== null && tableCombination instanceof Bomb) {
@@ -225,6 +207,7 @@ export class GameRoundState {
         selectedCards: CardInfo[],
         combination: CardCombination
     ) {
+        if (!this.table.requestedCardName) return;
         if (!this.isMahjongCompliant(
             allPlayerCards,
             combination,
@@ -257,26 +240,14 @@ export class GameRoundState {
             selectedCards, this.table.currentCards
         );
         if (selectedCombination !== null) {
-            if (this.pendingMahjongRequest !== '') {
-                this.throwIfMahjongRequestCheckFailed(
-                    selectedCards, selectedCombination
+            this.throwIfPendingBombCheckFailed(selectedCombination);
+            this.throwIfRequestedCardCheckFailed(
+                playerHand, selectedCards, selectedCombination
+            );
+            if (!this.isPlayable(selectedCombination)) {
+                throw new BusinessError(
+                    "The selected combination cannot be played."
                 );
-                this.table.requestedCardName = this.pendingMahjongRequest;
-            }
-            else if (this.pendingBombToBePlayed) {
-                this.throwIfPendingBombCheckFailed(selectedCombination);
-            }
-            else if (this.table.requestedCardName !== '') {
-                this.throwIfRequestedCardCheckFailed(
-                    playerHand, selectedCards, selectedCombination
-                );
-            }
-            else {
-                if (!this.isPlayable(selectedCombination)) {
-                    throw new BusinessError(
-                        "The selected combination cannot be played."
-                    );
-                }
             }
 
             // Checks done, setting up new state
@@ -287,7 +258,6 @@ export class GameRoundState {
             this.table.currentCardsOwnerIndex = this._currentPlayerIndex;
             this._pendingDragonToBeGiven = false;
             this.pendingBombToBePlayed = false;
-            this.pendingMahjongRequest = '';
             
             let nextPlayerIndex = (this._currentPlayerIndex + 1) % 4;
             if (this.table.currentCards[0].name === SpecialCards.Dogs) {
@@ -295,13 +265,11 @@ export class GameRoundState {
                 this.table.currentCards = [];
                 this.table.currentCombination = null;
             }
-            if (this.pendingMahjongRequest === '') {
-                if (this.table.requestedCardName !== "") {
-                    if (this.table.currentCards.some(
-                        card => card.name === this.table.requestedCardName
-                    )) {
-                        this.table.requestedCardName = "";
-                    }
+            if (this.table.requestedCardName !== "") {
+                if (this.table.currentCards.some(
+                    card => card.name === this.table.requestedCardName
+                )) {
+                    this.table.requestedCardName = "";
                 }
             }
             while (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) {
