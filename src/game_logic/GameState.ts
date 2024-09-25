@@ -224,9 +224,7 @@ export class GameState {
 
     onCardsPlayed(playerKey: PlayerKey, e: PlayCardsEvent) {
         const player = this.getPlayer(playerKey);
-        this.currentRound.playCardsOrElseThrow(
-            player, e.data.selectedCardKeys
-        );
+        this.currentRound.playCardsOrElseThrow(player, e);
         const combType = 
             this.currentRound.currentTableCombination?.type;
         if (!combType) throw new UnexpectedCombinationType (

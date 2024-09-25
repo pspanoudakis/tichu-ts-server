@@ -1,4 +1,4 @@
-import { GiveDragonEvent, RequestCardEvent } from "../schemas/events/ClientEvents";
+import { GiveDragonEvent, PlayCardsEvent, RequestCardEvent } from "../schemas/events/ClientEvents";
 import { BusinessError } from "./BusinessError";
 import { 
     Bomb, 
@@ -9,7 +9,7 @@ import {
     UnexpectedCombinationType
 } from "./CardCombinations";
 import { SpecialCards } from "./CardConfig";
-import { CardInfo } from "./CardInfo";
+import { CardInfo, PhoenixCard } from "./CardInfo";
 import { Deck } from "./Deck";
 import { RoundScore } from "./GameState";
 import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS } from "./PlayerKeys";
@@ -235,6 +235,19 @@ export class GameRoundState {
         }
     }
 
+    private static setPhoenixAltOrElseThrow(
+        cards: readonly CardInfo[], phoenixAltName?: string
+    ) {
+        for (const card of cards) {
+            if (!(card instanceof PhoenixCard)) continue;
+            if (!phoenixAltName) throw new BusinessError(
+                `An alternative must be selected for Phoenix.`
+            );
+            card.setAlt(phoenixAltName);
+            return;
+        }
+    }
+
     /**
      * Called when a player attempts to play some cards.
      * 
@@ -244,12 +257,13 @@ export class GameRoundState {
      * @param playerKey The key of the player.
      * @param selectedCardKeys The keys of the cards selected by the player.
      */
-    playCardsOrElseThrow(player: PlayerState, selectedCardKeys: string[]) {
+    playCardsOrElseThrow(player: PlayerState, e: PlayCardsEvent) {
         if (!(PLAYER_KEYS[this._currentPlayerIndex] === player.playerKey)) {
             throw new BusinessError(`It is not '${player.playerKey}' turn to play.`);
         }
         const playerHand = player.getCards();
-        const selectedCards = player.getCardsByKeys(selectedCardKeys);
+        const selectedCards = player.getCardsByKeys(e.data.selectedCardKeys);
+        GameRoundState.setPhoenixAltOrElseThrow(selectedCards, e.data.phoenixAltName);
 
         let selectedCombination = createCombination(
             selectedCards, this.table.currentCards
