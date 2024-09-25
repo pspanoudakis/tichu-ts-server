@@ -41,18 +41,31 @@ export enum CardCombinationType {
 export abstract class CardCombination {
 
     /** The combination type (see {@link CardCombinationType}) */
-    type: CardCombinationType;
+    private _type: CardCombinationType;
     /** The number of cards in the combination */
-    length: number;
+    private _length: number;
     /** The value of the top card in the combination */
-    value: any;
+    private _value: number;
 
     /** Creates a `CardCombination` with the given information. */
-    constructor(combination: CardCombinationType, len: number, val: any) {
-        this.type = combination;
-        this.length = len;
-        this.value = val;
+    constructor(combination: CardCombinationType, len: number, val: number) {
+        this._type = combination;
+        this._length = len;
+        this._value = val;
     }
+
+    get type() {
+        return this._type;
+    }
+
+    get length() {
+        return this._length;
+    }
+
+    get value() {
+        return this._value;
+    }
+
     /** 
      * Compares the provided combinations (used for constant length combination types).
      * @returns `0` if their values are equal, `> 0` if a > b, else `< 0`.
@@ -173,7 +186,7 @@ export class CardCouple extends CardCombination {
      * @returns The `CardCouple` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static create(cards: Array<CardInfo>) {
+    static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length !== 2) {
             return null;
         }
@@ -233,7 +246,7 @@ export class Triplet extends CardCombination {
      * @returns The `Triplet` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static create(cards: Array<CardInfo>) {
+    static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length !== 3) {
             return null;
         }
@@ -322,7 +335,7 @@ export class Steps extends CardCombination {
      * @returns The `Steps` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static create(cards: Array<CardInfo>) {
+    static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length >= 4 && cards.length % 2 === 0) {
             let cardOccurences: Map<number, number> = new Map();
             let phoenixUsed = true;
@@ -433,7 +446,7 @@ export class Kenta extends CardCombination {
      * @returns The `Kenta` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static create(cards: Array<CardInfo>) {
+    static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length > 4) {
             let phoenix = cards.find(card => card.name === SpecialCards.Phoenix);
             let topValue = cards[0].value;
@@ -480,7 +493,7 @@ export class FullHouse extends CardCombination {
      * @returns The `FullHouse` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static create(cards: Array<CardInfo>) {
+    static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length === 5) {
             let cardOccurences: CardNameOccurencesMap = {};
             for (const card of cards) {
@@ -628,7 +641,7 @@ export class Bomb extends CardCombination {
      * @returns The `Bomb` combination that is created using the given cards,
      * or `null` if such combination cannot be created.
      */
-    static createBomb(cards: Array<CardInfo>) {
+    static createBomb(cards: ReadonlyArray<CardInfo>) {
         if (cards.length > 4) {
             // Kenta bomb
             let previousCardValue = cards[0].value;
@@ -846,7 +859,10 @@ export class Bomb extends CardCombination {
  * 
  * @returns The created combination, or `null` if it cannot be created.
  */
-export function createCombination(cards: Array<CardInfo>, tableCards: Array<CardInfo>) {
+export function createCombination(
+    cards: ReadonlyArray<CardInfo>,
+    tableCards: ReadonlyArray<CardInfo>
+) {
     let combination: CardCombination | null = null;
     switch (cards.length) {
         case 1:
