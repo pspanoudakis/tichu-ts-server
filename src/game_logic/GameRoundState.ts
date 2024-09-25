@@ -14,7 +14,7 @@ import { Deck } from "./Deck";
 import { RoundScore } from "./GameState";
 import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS } from "./PlayerKeys";
 import { PlayerState } from "./PlayerState";
-import { TableState } from "./TablesState";
+import { TableState } from "./TableState";
 
 /** Possible player bet points */
 export enum GameBet {
