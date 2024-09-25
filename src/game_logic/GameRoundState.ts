@@ -30,7 +30,9 @@ class PlayerCards {
 }
 
 export class GameRoundState {
-    players: { [playerKey in PlayerKey]: PlayerState } = {
+    readonly players: {
+        readonly [playerKey in PlayerKey]: PlayerState
+    } = {
         player1: new PlayerState('player1'),
         player2: new PlayerState('player2'),
         player3: new PlayerState('player3'),
