@@ -1,9 +1,6 @@
 import { z } from "zod";
 import { PlayerKey, zPlayerKey } from "../../game_logic/PlayerKeys";
 
-export const zCardKey = z.string();
-export const zCardName = z.string();
-
 export function createGameEventSchema<
     EventType extends z.ZodTypeAny,
     DataType extends z.ZodTypeAny

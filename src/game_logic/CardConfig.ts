@@ -38,10 +38,15 @@ export const LetterCardValues: {
     'A': 14,
 } as const;
 
-type SpecialCardName =
-    'Dogs' | 'Phoenix' | 'Mahjong' | 'Dragon';
+const zSpecialCardName = z.union([
+    z.literal('Dogs'),
+    z.literal('Phoenix'),
+    z.literal('Mahjong'),
+    z.literal('Dragon'),
+])
+type SpecialCardName = z.infer<typeof zSpecialCardName>;
 export const SpecialCards: {
-    [name in SpecialCardName]: string
+    [name in SpecialCardName]: name
 } = {
     Dogs: 'Dogs',
     Dragon: 'Dragon',
@@ -52,6 +57,9 @@ export const specialCardNames = Object.values(SpecialCards);
 
 export const zNormalCardName = z.union([zNumericCardName, zLetterCardName]);
 type NormalCardName = NumericCardName | LetterCardName;
+
+export const zCardKey = z.string();
+export const zCardName = z.union([zNormalCardName, zSpecialCardName]);
 
 export const NormalCardConfig: {
     [name in NormalCardName]: {
