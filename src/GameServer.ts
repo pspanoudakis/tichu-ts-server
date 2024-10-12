@@ -1,5 +1,6 @@
 import http from "http";
 import { Server } from "socket.io";
+import cors from "cors"
 import { BusinessError } from "./game_logic/BusinessError";
 import { GameSession } from "./GameSession";
 import express, { Response as ExpressResponse } from "express";
@@ -22,6 +23,7 @@ export class GameServer {
     private sessionIdSeq = 0;
 
     private constructor() {
+        this.express.use(cors());
         this.express.use(express.json());
         this.express.post('/session', (req, res) => {
             GameServer.responseCreator(res, () => 

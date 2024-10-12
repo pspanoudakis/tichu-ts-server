@@ -83,8 +83,8 @@ export class GameSession {
         this.id = sessionId;
         this.gameState = new GameState(
             winningScore,
-            this.emitEventByKey,
-            this.emitToNamespace
+            this.emitEventByKey.bind(this),
+            this.emitToNamespace.bind(this)
         );
         this.sessionNamespace = socketServer.of(`/${sessionId}`);
         this.sessionNamespace.use((_, next) => {
