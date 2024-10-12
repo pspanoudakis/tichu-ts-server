@@ -16,12 +16,6 @@ import { PLAYER_KEYS, PlayerKey, TEAM_KEYS, TEAM_PLAYERS } from "./PlayerKeys";
 import { PlayerState } from "./PlayerState";
 import { TableState } from "./TableState";
 
-/** Possible player bet points */
-export enum GameBet {
-    NONE = 0,
-    TICHU = 100,
-    GRAND_TICHU = 200
-}
 class PlayerCards {
     player1 = Array<CardInfo>();
     player2 = Array<CardInfo>();

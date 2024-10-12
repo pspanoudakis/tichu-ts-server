@@ -2,7 +2,6 @@ import { PlaceBetEvent, TradeCardsEvent } from "../schemas/events/ClientEvents";
 import { BusinessError } from "./BusinessError";
 import { SpecialCards } from "./CardConfig";
 import { CardInfo } from "./CardInfo";
-import { GameBet } from "./GameRoundState";
 import { PlayerKey } from "./PlayerKeys";
 
 type PlayerTradeDecisions = {
@@ -10,6 +9,13 @@ type PlayerTradeDecisions = {
     left: CardInfo,
     right: CardInfo,
 };
+
+/** Possible player bet points */
+export enum GameBet {
+    NONE = 0,
+    TICHU = 100,
+    GRAND_TICHU = 200
+}
 
 export class PlayerState {
     readonly playerKey: PlayerKey;

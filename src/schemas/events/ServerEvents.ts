@@ -3,12 +3,12 @@ import {
     createEmptyGameEventSchema,
     createGameEventSchema,
 } from "./GameEvent";
-import { GameBet } from "../../game_logic/GameRoundState";
 import { CardCombinationType } from "../../game_logic/CardCombinations";
 import { zGameWinnerResult, zRoundScore } from "../../game_logic/GameState";
 import { PLAYER_KEYS, PlayerKey, zPlayerKey } from "../../game_logic/PlayerKeys";
 import { ERROR_TYPES } from "../API";
 import { zCardKey, zCardName } from "../../game_logic/CardConfig";
+import { GameBet } from "../../game_logic/PlayerState";
 
 export const ServerEventType = {
     WAITING_4_JOIN: 'WAITING_4_JOIN',
