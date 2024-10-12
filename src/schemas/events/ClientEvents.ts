@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createEmptyGameEventSchema, createGameEventSchema } from "./GameEvent";
 import { zPlayerKey } from "../../game_logic/PlayerKeys";
 import { zCardKey, zCardName } from "../../game_logic/CardConfig";
-import { GameBet } from "../../game_logic/PlayerState";
+import { PlayerBet } from "../../game_logic/PlayerState";
 
 export const ClientEventType =  {
     JOIN_GAME: 'JOIN_GAME',
@@ -72,8 +72,8 @@ export const zPlaceBetEvent = createGameEventSchema(
     z.literal(ClientEventType.PLACE_BET),
     z.object({
         betPoints: z.union([
-            z.literal(GameBet.TICHU),
-            z.literal(GameBet.GRAND_TICHU)
+            z.literal(PlayerBet.TICHU),
+            z.literal(PlayerBet.GRAND_TICHU)
         ]),
     })
 )

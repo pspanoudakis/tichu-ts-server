@@ -11,7 +11,7 @@ type PlayerTradeDecisions = {
 };
 
 /** Possible player bet points */
-export enum GameBet {
+export enum PlayerBet {
     NONE = 0,
     TICHU = 100,
     GRAND_TICHU = 200
@@ -21,7 +21,7 @@ export class PlayerState {
     readonly playerKey: PlayerKey;
     private _cards = new Map<string, CardInfo>();
     private _heap = Array<CardInfo>();
-    private _bet = GameBet.NONE;
+    private _bet = PlayerBet.NONE;
     private _tradesOut?: PlayerTradeDecisions;
     private _tradesIn?: PlayerTradeDecisions;
     private _hasPlacedBet = false;
@@ -113,7 +113,7 @@ export class PlayerState {
     placeBetOrElseThrow(e: PlaceBetEvent) {
         if (this._hasPlacedBet)
             throw new BusinessError('This player has already placed a bet.');
-        if ((e.data.betPoints === GameBet.GRAND_TICHU) && this.hasRevealedCards)
+        if ((e.data.betPoints === PlayerBet.GRAND_TICHU) && this.hasRevealedCards)
             throw new BusinessError(
                 'A Grand Tichu bet cannot be placed since all cards have been revealed.'
             );

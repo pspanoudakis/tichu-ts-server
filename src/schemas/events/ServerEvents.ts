@@ -8,7 +8,7 @@ import { zGameWinnerResult, zRoundScore } from "../../game_logic/GameState";
 import { PLAYER_KEYS, PlayerKey, zPlayerKey } from "../../game_logic/PlayerKeys";
 import { ERROR_TYPES } from "../API";
 import { zCardKey, zCardName } from "../../game_logic/CardConfig";
-import { GameBet } from "../../game_logic/PlayerState";
+import { PlayerBet } from "../../game_logic/PlayerState";
 
 export const ServerEventType = {
     WAITING_4_JOIN: 'WAITING_4_JOIN',
@@ -114,8 +114,8 @@ export const zBetPlacedEvent = createGameEventSchema(
     z.literal(ServerEventType.BET_PLACED),
     z.object({
         betPoints: z.union([
-            z.literal(GameBet.TICHU),
-            z.literal(GameBet.GRAND_TICHU)
+            z.literal(PlayerBet.TICHU),
+            z.literal(PlayerBet.GRAND_TICHU)
         ]),
     })
 )
