@@ -1,11 +1,13 @@
 import { z } from "zod";
 
-export const CardColor = {
+const CardColor = {
     BLACK: 'black',
     RED: 'red',
     BLUE: 'blue',
     GREEN: 'green'
 } as const;
+
+export type CardColor = typeof CardColor[keyof typeof CardColor];
 
 export const cardColorValues = Object.values(CardColor);
 
@@ -53,13 +55,14 @@ export const SpecialCards: {
     Mahjong: 'Mahjong',
     Phoenix: 'Phoenix',
 } as const;
-export const specialCardNames = Object.values(SpecialCards);
+export const specialCardNames = Object.values(SpecialCards) as string[];
 
 export const zNormalCardName = z.union([zNumericCardName, zLetterCardName]);
-type NormalCardName = NumericCardName | LetterCardName;
+export type NormalCardName = NumericCardName | LetterCardName;
 
 export const zCardKey = z.string();
 export const zCardName = z.union([zNormalCardName, zSpecialCardName]);
+export type CardName = z.infer<typeof zCardName>;
 
 export const NormalCardConfig: {
     [name in NormalCardName]: {

@@ -15,7 +15,7 @@ export class CardInfo {
     /** The value of the card. */
     readonly value: number;
     /** The value of the card (see {@link CardColor}) */
-    readonly color: string | '';
+    readonly color?: CardColor;
     /**
      * The unique key of the card. This is used by the client to refer
      * e.g. to the selected cards to be played.
@@ -24,7 +24,7 @@ export class CardInfo {
     /** Indicates whether the card is currently selected or not. */
     isSelected = false;
 
-    constructor(name: string, color?: typeof CardColor [keyof typeof CardColor]) {
+    constructor(name: string, color?: CardColor) {
         switch (name) {
             case SpecialCards.Dogs:
                 this.key = SpecialCards.Dogs;
@@ -61,7 +61,7 @@ export class CardInfo {
                 break;
         }
         this.name = name;
-        this.color = color ?? '';
+        this.color = color;
     };
 
     /**

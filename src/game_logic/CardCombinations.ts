@@ -713,7 +713,7 @@ export class Bomb extends CardCombination {
         }
         for (const card of cards) {
             if (!specialCardNames.includes(card.name)) {
-                normalCardsColorMap[card.name].set(card.color, true);
+                normalCardsColorMap[card.name].set(card.color ?? '', true);
             }
         }
         const cardColorsArray = Object.entries(normalCardsColorMap);
@@ -791,7 +791,7 @@ export class Bomb extends CardCombination {
         for (const card of cards) {
             if (!specialCardNames.includes(card.name)) {
                 // not a special card
-                groupedNormalCards[card.name].set(card.color, true);
+                groupedNormalCards[card.name].set(card.color ?? '', true);
             }
         }
         const cardGroupArray = Object.entries(groupedNormalCards);

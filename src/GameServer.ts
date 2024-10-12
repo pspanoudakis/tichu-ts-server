@@ -23,12 +23,12 @@ export class GameServer {
 
     private constructor() {
         this.express.use(express.json());
-        this.express.post('/', (req, res) => {
+        this.express.post('/session', (req, res) => {
             GameServer.responseCreator(res, () => 
                 this.handleCreateRoomEvent(zCreateRoomRequest.parse(req.body))
             );
         });
-        this.express.get('/join', (_, res) => {
+        this.express.get('/openSession', (_, res) => {
             GameServer.responseCreator(res, () => 
                 this.handleJoinGameEvent()
             );
