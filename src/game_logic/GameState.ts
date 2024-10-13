@@ -268,7 +268,7 @@ export class GameState {
         if (this.currentRound.pendingDragonToBeGiven) {
             this.emitToAll<PendingDragonDecisionEvent>({
                 eventType: ServerEventType.PENDING_DRAGON_DECISION,
-            })
+            });
         } else if (!this.currentRound.currentTableCombination) {
             this.emitToAll<TableRoundEndedEvent>({
                 eventType: ServerEventType.TABLE_ROUND_ENDED,
