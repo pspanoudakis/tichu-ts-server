@@ -416,11 +416,25 @@ export class GameRoundState {
     giveDragonOrElseThrow(player: PlayerState, e: GiveDragonEvent) {
         if (player.playerKey !== PLAYER_KEYS[this._currentPlayerIndex])
             throw new BusinessError(`It is not this player's turn.`);
+
         if (!this._pendingDragonToBeGiven)
             throw new BusinessError('No pending dragon decision state stored.');
+
         const chosenPlayer = this.players[e.data.chosenOponentKey];
         if (!chosenPlayer)
             throw new BusinessError('Invalid player key to give dragon to.');
+
+        const teamNames = Object.values(TEAM_KEYS);
+        if (
+            teamNames.find(tn => TEAM_PLAYERS[tn].includes(player.playerKey)) ===
+            teamNames.find(tn => TEAM_PLAYERS[tn].includes(player.playerKey)
+        )) {
+            throw new BusinessError('The chosen player key is not of an opponent.');
+        }
+
+        if (chosenPlayer.getNumCards() === 0)
+            throw new BusinessError('Cannot give the Dragon to a player without cards.');
+        
         chosenPlayer.addCardsToHeap(...this.table.endTableRound());
         this._pendingDragonToBeGiven = false;
     }
