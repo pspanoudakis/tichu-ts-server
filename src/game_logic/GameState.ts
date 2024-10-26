@@ -194,6 +194,7 @@ export class GameState {
 
     onPlayerLeft(playerKey: PlayerKey, notifyOthers = false) {
         switch (this.status) {
+            case GameStatus.OVER:
             case GameStatus.INIT:
                 break;
             case GameStatus.IN_PROGRESS:

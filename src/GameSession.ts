@@ -215,11 +215,12 @@ export class GameSession {
         validator: (e: any) => GameEvent<T, D>,
         eventHandler: (e: GameEvent<T, D>) => void,
     ) {
-        return (event: any) => {
+        return (event: any, ackFn?: () => void) => {
             try {
                 if (!client.hasJoinedGame)
                     throw new BusinessError(`Unexpected Event '${event.eventType}'`);
                 eventHandler(validator(event));
+                ackFn?.();
             } catch (error) {
                 this.emitErrorByKey(client.playerKey, error);
             }
