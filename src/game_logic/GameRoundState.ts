@@ -380,6 +380,14 @@ export class GameRoundState {
         this._currentPlayerIndex = nextPlayerIndex;
     }
 
+    onPlayerTradesReceived(playerKey: PlayerKey) {
+        const player = this.players[playerKey]
+        player.receiveTradesOrElseThrow();
+        if (player.hasMahjong()) {
+            this._currentPlayerIndex = PLAYER_KEYS.indexOf(playerKey);
+        }
+    }
+
     enablePendingBombOrElseThrow(player: PlayerState) {
         if (this.pendingBombToBePlayed)
             throw new BusinessError('A pending Bomb is about to be played.');

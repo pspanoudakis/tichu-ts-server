@@ -145,7 +145,7 @@ export class GameSession {
                 }
             )).on(ClientEventType.RECEIVE_TRADE, this.eventHandlerWrapper(
                 client, zReceiveTradeEvent.parse, (e: ReceiveTradeEvent) => {
-                    this.gameState.onTradeReceived(playerKey, e);
+                    this.gameState.onTradesReceived(playerKey, e);
                 }
             )).on(ClientEventType.PLAY_CARDS, this.eventHandlerWrapper(
                 client, zPlayCardsEvent.parse, (e: PlayCardsEvent) => {

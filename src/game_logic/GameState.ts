@@ -324,8 +324,8 @@ export class GameState {
         }
     }
 
-    onTradeReceived(playerKey: PlayerKey, e: ReceiveTradeEvent) {
-        this.getPlayer(playerKey).receiveTradesOrElseThrow();
+    onTradesReceived(playerKey: PlayerKey, e: ReceiveTradeEvent) {
+        this.currentRound.onPlayerTradesReceived(playerKey);
         if (PLAYER_KEYS.every(
             k => this.currentRound.players[k].hasReceivedTrades
         )) {
