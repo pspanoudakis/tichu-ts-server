@@ -117,7 +117,7 @@ export class PlayerState {
             throw new BusinessError(
                 'A Grand Tichu bet cannot be placed since all cards have been revealed.'
             );
-        if (this._cards.size < 14)
+        if (this._hasReceivedTrades && (this._cards.size < 14))
             throw new BusinessError(
                 'A bet cannot be placed since this player has used some of the given cards.'
             );
