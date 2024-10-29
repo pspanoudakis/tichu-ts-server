@@ -44,9 +44,9 @@ export class GameRoundState {
     constructor() {
         this.handCards();
     }
-
-    get currentPlayerIndex() {
-        return this._currentPlayerIndex;
+    
+    get currentPlayerKey() {
+        return PLAYER_KEYS[this._currentPlayerIndex];
     }
 
     get pendingDragonToBeGiven() {

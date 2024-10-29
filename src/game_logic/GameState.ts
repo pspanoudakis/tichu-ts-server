@@ -155,9 +155,7 @@ export class GameState {
         this.emitToAll<TableRoundStartedEvent>({
             eventType: ServerEventType.TABLE_ROUND_STARTED,
             data: {
-                currentPlayer: PLAYER_KEYS[
-                    this.currentRound.currentPlayerIndex
-                ]
+                currentPlayer: this.currentRound.currentPlayerKey,
             }
         })
     }
@@ -226,6 +224,7 @@ export class GameState {
     onCardsPlayed(playerKey: PlayerKey, e: PlayCardsEvent) {
         const player = this.getPlayer(playerKey);
         this.currentRound.playCardsOrElseThrow(player, e);
+        // TODO: crashes for dogs
         const combType = 
             this.currentRound.currentTableCombination?.type;
         if (!combType) throw new UnexpectedCombinationType (
@@ -237,9 +236,10 @@ export class GameState {
             data: {
                 combinationType: combType,
                 numCardsRemainingInHand: player.getNumCards(),
-                tableCardKeys: GameState.mapCardsToKeys(player.getCards()),
+                tableCardKeys: e.data.selectedCardKeys,
                 requestedCardName: 
                     this.currentRound.requestedCardName,
+                currentPlayer: this.currentRound.currentPlayerKey,
             }
         });
         if (this.currentRound.mustEndGameRound()) {
@@ -265,6 +265,9 @@ export class GameState {
         this.emitToAll<TurnPassedEvent>({
             playerKey: playerKey,
             eventType: ServerEventType.TURN_PASSED,
+            data: {
+                currentPlayer: this.currentRound.currentPlayerKey,
+            }
         });
         if (this.currentRound.pendingDragonToBeGiven) {
             this.emitToAll<PendingDragonDecisionEvent>({

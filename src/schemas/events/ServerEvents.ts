@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createGameEventSchema } from "./GameEvent";
 import { CardCombinationType } from "../../game_logic/CardCombinations";
 import { zGameWinnerResult, zRoundScore } from "../../game_logic/GameState";
-import { PLAYER_KEYS, PlayerKey, zPlayerKey } from "../../game_logic/PlayerKeys";
+import { PlayerKey, zPlayerKey } from "../../game_logic/PlayerKeys";
 import { ERROR_TYPES } from "../API";
 import { zCardKey, zCardName } from "../../game_logic/CardConfig";
 import { PlayerBet } from "../../game_logic/PlayerState";
@@ -80,6 +80,7 @@ export const zCardsPlayedEvent = createGameEventSchema(
         combinationType: z.nativeEnum(CardCombinationType),
         tableCardKeys: z.array(zCardKey),
         requestedCardName: z.optional(z.string()),
+        currentPlayer: zPlayerKey,
     }),
     zPlayerKey,
 );
@@ -87,7 +88,9 @@ export type CardsPlayedEvent = z.infer<typeof zCardsPlayedEvent>;
 
 export const zTurnPassedEvent = createGameEventSchema(
     z.literal(ServerEventType.TURN_PASSED),
-    z.undefined(),
+    z.object({
+        currentPlayer: zPlayerKey,
+    }),
     zPlayerKey,
 );
 export type TurnPassedEvent = z.infer<typeof zTurnPassedEvent>;
