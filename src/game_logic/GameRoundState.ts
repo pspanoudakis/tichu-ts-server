@@ -8,7 +8,7 @@ import {
     SingleCard,
     UnexpectedCombinationType
 } from "./CardCombinations";
-import { SpecialCards } from "./CardConfig";
+import { NormalCardName, SpecialCards } from "./CardConfig";
 import { CardInfo, PhoenixCard } from "./CardInfo";
 import { Deck } from "./Deck";
 import { RoundScore } from "./GameState";
@@ -36,7 +36,7 @@ export class GameRoundState {
     private _currentPlayerIndex = -1;
     private _pendingDragonToBeGiven = false;
     private pendingBombToBePlayed = false;
-    private _requestedCardName: string = '';
+    private _requestedCardName?: NormalCardName;
     private table: TableState = new TableState();
     private gameRoundWinnerKey: PlayerKey | '' = '';
     private _isOver = false;
@@ -158,8 +158,11 @@ export class GameRoundState {
         selectedCombination: CardCombination,
         selectedCards: Array<CardInfo>
     ) {
-        if (selectedCombination.type === CardCombinationType.BOMB) { return true; }
         const requestedCardName = this._requestedCardName;
+        if (
+            !requestedCardName ||
+            (selectedCombination.type === CardCombinationType.BOMB)
+        ) return true;
         if (this.table.currentCombination === null) {
             // See if there is *any* valid combination with the requested card
             if (SingleCard.getStrongestRequested(selectedCards, requestedCardName) === null &&
@@ -216,7 +219,6 @@ export class GameRoundState {
         selectedCards: CardInfo[],
         combination: CardCombination
     ) {
-        if (!this._requestedCardName) return;
         if (!this.isMahjongCompliant(
             allPlayerCards,
             combination,
@@ -287,11 +289,11 @@ export class GameRoundState {
                 // Clear table cards
                 this.table.endTableRound();
             }
-            if (this._requestedCardName !== "") {
+            if (this._requestedCardName) {
                 if (this.table.currentCards.some(
                     card => card.name === this._requestedCardName
                 )) {
-                    this._requestedCardName = "";
+                    this._requestedCardName = undefined;
                 }
             }
             while (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) {
@@ -321,7 +323,7 @@ export class GameRoundState {
             throw new BusinessError('Cannot pass during a pending dragon decision.');
         if (this.table.currentCombination === null)
             throw new BusinessError('The table round starter cannot pass.');
-        if (this._requestedCardName === "") return;
+        if (!this._requestedCardName) return;
         const playerCards = player.getCards();
         switch (this.table.currentCombination.type) {
             case CardCombinationType.BOMB:
