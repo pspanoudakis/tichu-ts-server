@@ -447,7 +447,7 @@ export class Kenta extends CardCombination {
     static create(cards: ReadonlyArray<CardInfo>) {
         if (cards.length > 4) {
             let phoenix = cards.find(card => card.name === SpecialCards.Phoenix);
-            let topValue = cards[0].value;
+            let topValue = cards[0].value; // Assumes cards are sent sorted!
             if (phoenix instanceof PhoenixCard) {
                 topValue = Math.max(phoenix.altValue, topValue);
             }
