@@ -1,7 +1,8 @@
 import {
     cardColorValues,
     getNormalCardValueByName,
-    normalCardKeys,
+    normalCardNames,
+    NormalCardName,
     specialCardNames,
     SpecialCards
 } from "./CardConfig";
@@ -116,7 +117,7 @@ export abstract class CardCombination {
      * @param requested The name of the card that must be present in the combination.
      * @param length If specified, the created combination must have this length.
      */
-    abstract compare(cards: Array<CardInfo>, requested: string, length?: number): number;
+    abstract compare(cards: Array<CardInfo>, requested: NormalCardName, length?: number): number;
 }
 
 /**
@@ -144,7 +145,7 @@ export class SingleCard extends CardCombination {
     compareCombination(other: SingleCard | null) {
         return CardCombination.basicCompare(this, other);
     }
-    compare(cards: Array<CardInfo>, requested: string) {
+    compare(cards: Array<CardInfo>, requested: NormalCardName) {
         return CardCombination.basicCompare(
             this, SingleCard.getStrongestRequested(cards, requested)
         );
@@ -204,7 +205,7 @@ export class CardCouple extends CardCombination {
     compareCombination(other: CardCouple | null) {
         return CardCombination.basicCompare(this, other);
     }
-    compare(cards: Array<CardInfo>, requested: string) {
+    compare(cards: Array<CardInfo>, requested: NormalCardName) {
         return CardCombination.basicCompare(
             this, CardCouple.getStrongestRequested(cards, requested)
         );
@@ -257,7 +258,7 @@ export class Triplet extends CardCombination {
     compareCombination(other: Triplet | null) {
         return CardCombination.basicCompare(this, other);
     }
-    compare(cards: Array<CardInfo>, requested: string) {
+    compare(cards: Array<CardInfo>, requested: NormalCardName) {
         return CardCombination.basicCompare(
             this, Triplet.getStrongestRequested(cards, requested)
         );
@@ -282,7 +283,7 @@ export class Steps extends CardCombination {
      * @param requested The name of the requested card to include in the combination.
      * @returns The `Steps` combination, or `null` if it was not found.
      */
-    static getStrongestRequested(cards: Array<CardInfo>, requested: string, length: number) {
+    static getStrongestRequested(cards: Array<CardInfo>, requested: NormalCardName, length: number) {
         if (cards.length >= length) {
             let cardOccurences: Map<string, number> = new Map();
             let phoenixUsed = true;
@@ -301,14 +302,14 @@ export class Steps extends CardCombination {
             const requestedOccurences = cardOccurences.get(requested);
             if (requestedOccurences !== undefined &&
                 (requestedOccurences >= 2 || (requestedOccurences === 1 && !phoenixUsed))) {
-                let requestedIndex = normalCardKeys.indexOf(requested);
-                let highIndex = Math.min(normalCardKeys.length - 1, requestedIndex + length - 1);
+                let requestedIndex = normalCardNames.indexOf(requested);
+                let highIndex = Math.min(normalCardNames.length - 1, requestedIndex + length - 1);
                 let lowIndex = highIndex - length + 1;
                 while (lowIndex >= 0 && isBetween(requestedIndex, lowIndex, highIndex)) {
                     let phoenixUsedTemp = phoenixUsed;
                     let i = highIndex;
                     for (; i >= lowIndex; i--) {
-                        const occurences = cardOccurences.get(normalCardKeys[i]);
+                        const occurences = cardOccurences.get(normalCardNames[i]);
                         if (occurences !== undefined) {
                             if (occurences < 2) {
                                 if (phoenixUsedTemp) { break; }
@@ -318,7 +319,7 @@ export class Steps extends CardCombination {
                         else { break; }
                     }
                     if (i < lowIndex) {
-                        return new Steps(getNormalCardValueByName(normalCardKeys[highIndex]), length);
+                        return new Steps(getNormalCardValueByName(normalCardNames[highIndex]), length);
                     }
                     highIndex = i - 1;
                     lowIndex = highIndex - length + 1;
@@ -375,7 +376,7 @@ export class Steps extends CardCombination {
     compareCombination(other: Steps | null) {
         return CardCombination.altCompare(this, other);
     }
-    compare(cards: Array<CardInfo>, requested: string, length: number) {
+    compare(cards: Array<CardInfo>, requested: NormalCardName, length: number) {
         return CardCombination.altCompare(
             this, Steps.getStrongestRequested(cards, requested, length)
         );
@@ -398,7 +399,7 @@ export class Kenta extends CardCombination {
      * @param requested The name of the requested card to include in the combination.
      * @returns The `Kenta` combination, or `null` if it was not found.
      */
-    static getStrongestRequested(cards: Array<CardInfo>, requested: string, length: number) {
+    static getStrongestRequested(cards: Array<CardInfo>, requested: NormalCardName, length: number) {
         if (cards.length >= length) {
             let cardOccurences: Map<string, number> = new Map();
             let phoenixUsed = true;
@@ -415,21 +416,21 @@ export class Kenta extends CardCombination {
                 }
             }
             if (cardOccurences.get(requested) !== undefined || !phoenixUsed) {
-                let requestedIndex = normalCardKeys.indexOf(requested);
-                let highIndex = Math.min(normalCardKeys.length - 1, requestedIndex + length - 1);
+                let requestedIndex = normalCardNames.indexOf(requested);
+                let highIndex = Math.min(normalCardNames.length - 1, requestedIndex + length - 1);
                 let lowIndex = highIndex - length + 1;
                 while (lowIndex >= 0 && isBetween(requestedIndex, lowIndex, highIndex)) {
                     let phoenixUsedTemp = phoenixUsed;
                     let i = highIndex;
                     for (; i >= lowIndex; i--) {
-                        const occurences = cardOccurences.get(normalCardKeys[i]);
+                        const occurences = cardOccurences.get(normalCardNames[i]);
                         if (occurences === undefined) {
                             if (phoenixUsedTemp) { break; }
                             phoenixUsedTemp = true;
                         }
                     }
                     if (i < lowIndex) {
-                        return new Kenta(getNormalCardValueByName(normalCardKeys[highIndex]), length);
+                        return new Kenta(getNormalCardValueByName(normalCardNames[highIndex]), length);
                     }
                     highIndex = i - 1;
                     lowIndex = highIndex - length + 1;
@@ -470,7 +471,7 @@ export class Kenta extends CardCombination {
     compareCombination(other: Kenta | null) {
         return CardCombination.altCompare(this, other);
     }
-    compare(cards: Array<CardInfo>, requested: string, length: number) {
+    compare(cards: Array<CardInfo>, requested: NormalCardName, length: number) {
         return CardCombination.altCompare(
             this, Kenta.getStrongestRequested(cards, requested, length)
         );
@@ -524,7 +525,7 @@ export class FullHouse extends CardCombination {
     compareCombination(other: FullHouse | null) {
         return CardCombination.basicCompare(this, other);
     }
-    compare(cards: Array<CardInfo>, requested: string) {
+    compare(cards: Array<CardInfo>, requested: NormalCardName) {
         return CardCombination.basicCompare(
             this, FullHouse.getStrongestRequested(cards, requested)
         );
@@ -689,7 +690,7 @@ export class Bomb extends CardCombination {
         return Bomb.compareBombs(this, other);
     }
 
-    compare(cards: Array<CardInfo>, requested: string) {
+    compare(cards: Array<CardInfo>, requested: NormalCardName) {
         return Bomb.compareBombs(this, Bomb.getStrongestRequested(cards, requested))
     }
 
@@ -705,7 +706,7 @@ export class Bomb extends CardCombination {
         let strongestBomb = null;
 
         let normalCardsColorMap: CardColorOccurencesMap = {};
-        for (const key of normalCardKeys) {
+        for (const key of normalCardNames) {
             normalCardsColorMap[key] = new Map();
             for (const color of cardColorValues) {
                 normalCardsColorMap[key].set(color, false);
@@ -782,7 +783,7 @@ export class Bomb extends CardCombination {
         let strongestBomb = null;
 
         let groupedNormalCards: CardColorOccurencesMap = {};
-        for (const key of normalCardKeys) {
+        for (const key of normalCardNames) {
             groupedNormalCards[key] = new Map();
             for (const color of cardColorValues) {
                 groupedNormalCards[key].set(color, false);
