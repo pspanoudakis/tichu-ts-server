@@ -223,7 +223,7 @@ export class GameState {
 
     onCardsPlayed(playerKey: PlayerKey, e: PlayCardsEvent) {
         const player = this.getPlayer(playerKey);
-        this.currentRound.playCardsOrElseThrow(player, e);
+        const cards = this.currentRound.playCardsOrElseThrow(player, e);
         // TODO: crashes for dogs
         const combType = 
             this.currentRound.currentTableCombination?.type;
@@ -236,7 +236,7 @@ export class GameState {
             data: {
                 combinationType: combType,
                 numCardsRemainingInHand: player.getNumCards(),
-                tableCardKeys: e.data.selectedCardKeys,
+                tableCardKeys: cards.map(c => c.key),
                 requestedCardName: 
                     this.currentRound.requestedCardName,
                 currentPlayer: this.currentRound.currentPlayerKey,

@@ -29,7 +29,7 @@ export class TableState {
         newOwnerIdx: number
     ) {
         this._previousCards.push(...this._currentCards)
-        this._currentCards = Array.from(newCards);
+        this._currentCards = Array.from(newCards).sort(CardInfo.compareCards);
         this._currentCombination = newCombination;
         this._currentCardsOwnerIndex = newOwnerIdx;
     }

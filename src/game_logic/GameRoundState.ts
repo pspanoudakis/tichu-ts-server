@@ -234,6 +234,7 @@ export class GameRoundState {
     private static setPhoenixAltOrElseThrow(
         cards: readonly CardInfo[], phoenixAltName?: string
     ) {
+        if (cards.length < 5) return; // No alt required, will be auto inferred
         for (const card of cards) {
             if (!(card instanceof PhoenixCard)) continue;
             if (!phoenixAltName) throw new BusinessError(
@@ -244,15 +245,6 @@ export class GameRoundState {
         }
     }
 
-    /**
-     * Called when a player attempts to play some cards.
-     * 
-     * Performs all the necessary checks for the cards to be played. If they can be played,
-     * the Gameboard state will be set accordingly, otherwise they will be rejected
-     * and an alert message will be displayed to indicate the reason.
-     * @param playerKey The key of the player.
-     * @param selectedCardKeys The keys of the cards selected by the player.
-     */
     playCardsOrElseThrow(player: PlayerState, e: PlayCardsEvent) {
         if (!(PLAYER_KEYS[this._currentPlayerIndex] === player.playerKey)) {
             throw new BusinessError(`It is not '${player.playerKey}' turn to play.`);
@@ -307,6 +299,7 @@ export class GameRoundState {
         else {
             throw new BusinessError('Invalid or unplayable combination.');
         }
+        return this.table.currentCards;
     }
 
     /**
