@@ -363,7 +363,13 @@ export class GameRoundState {
     passTurnOrElseThrow(player: PlayerState) {
         this.throwIfCannotPass(player);
         let nextPlayerIndex = (this._currentPlayerIndex + 1) % 4;
-        while (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) {
+        while (
+            (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) &&
+            (
+                (this.table.currentCards[0].key !== SpecialCards.Dragon) ||
+                (nextPlayerIndex !== this.table.currentCardsOwnerIndex)
+            )
+        ) {
             if (nextPlayerIndex === this.table.currentCardsOwnerIndex) {
                 this.endTableRound();
             }
@@ -428,10 +434,13 @@ export class GameRoundState {
             throw new BusinessError('Invalid player key to give dragon to.');
 
         const teamNames = Object.values(TEAM_KEYS);
-        if (
-            teamNames.find(tn => TEAM_PLAYERS[tn].includes(player.playerKey)) ===
-            teamNames.find(tn => TEAM_PLAYERS[tn].includes(player.playerKey)
-        )) {
+        const playerTeam = teamNames.find(
+            tn => TEAM_PLAYERS[tn].includes(player.playerKey)
+        )
+        if (!playerTeam) throw new Error(
+            `Did not find team name for player key: ${player.playerKey}`
+        );
+        if (TEAM_PLAYERS[playerTeam].includes(e.data.chosenOponentKey)) {
             throw new BusinessError('The chosen player key is not of an opponent.');
         }
 
@@ -440,6 +449,13 @@ export class GameRoundState {
         
         chosenPlayer.addCardsToHeap(...this.table.endTableRound());
         this._pendingDragonToBeGiven = false;
+
+        let nextPlayerIndex = this._currentPlayerIndex;
+        while (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) {
+            nextPlayerIndex = (nextPlayerIndex + 1) % 4;
+        }
+        this._currentPlayerIndex = nextPlayerIndex;
+        this.table = new TableState();
     }
 
     /**

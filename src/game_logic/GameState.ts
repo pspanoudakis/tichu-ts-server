@@ -358,11 +358,11 @@ export class GameState {
     onDragonGiven(playerKey: PlayerKey, e: GiveDragonEvent) {
         this.currentRound.giveDragonOrElseThrow(this.getPlayer(playerKey), e);
         this.emitToAll<DragonGivenEvent>({
-            playerKey: playerKey,
             eventType: ServerEventType.DRAGON_GIVEN,
             data: {
                 dragonReceiverKey: e.data.chosenOponentKey
             },
         });
+        this.onTableRoundStarted();
     }
 }
