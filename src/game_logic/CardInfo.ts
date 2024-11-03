@@ -21,8 +21,6 @@ export class CardInfo {
      * e.g. to the selected cards to be played.
      */
     readonly key: string;
-    /** Indicates whether the card is currently selected or not. */
-    isSelected = false;
 
     constructor(name: string, color?: CardColor) {
         switch (name) {
@@ -82,7 +80,7 @@ export class CardInfo {
         }
         return valueB - valueA;
     }
-
+    
     static compareCardsAlt(a: CardInfo, b: CardInfo, phoenixAltValue?: number) {
         let valueA = a.value;
         let valueB = b.value;
