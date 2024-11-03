@@ -108,6 +108,7 @@ export class GameRoundState {
      * @param selectedCombination The target combination to be examed.
      */
     private isPlayable(selectedCombination: CardCombination) {
+        if (this.table.currentCards[0]?.name === SpecialCards.Dogs) return true;
         if (this.table.currentCombination !== null) {
             if (selectedCombination instanceof Bomb) {
                 if (this.table.currentCombination instanceof Bomb) {
@@ -278,8 +279,6 @@ export class GameRoundState {
             let nextPlayerIndex = (this._currentPlayerIndex + 1) % 4;
             if (this.table.currentCards[0].name === SpecialCards.Dogs) {
                 nextPlayerIndex = (this._currentPlayerIndex + 2) % 4;
-                // Clear table cards
-                this.table.endTableRound();
             }
             if (this._requestedCardName) {
                 if (this.table.currentCards.some(
@@ -291,7 +290,7 @@ export class GameRoundState {
             while (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) {
                 nextPlayerIndex = (nextPlayerIndex + 1) % 4;
             }
-            if (this.gameRoundWinnerKey === '' && player.getNumCards() === 0) {
+            if (!this.gameRoundWinnerKey && player.getNumCards() === 0) {
                 this.gameRoundWinnerKey = player.playerKey;
             }
             this._currentPlayerIndex = nextPlayerIndex;
@@ -316,6 +315,8 @@ export class GameRoundState {
             throw new BusinessError('Cannot pass during a pending dragon decision.');
         if (this.table.currentCombination === null)
             throw new BusinessError('The table round starter cannot pass.');
+        if (this.table.currentCards[0]?.name === SpecialCards.Dogs)
+            throw new BusinessError('Cannot pass on Dogs.');
         if (!this._requestedCardName) return;
         const playerCards = player.getCards();
         switch (this.table.currentCombination.type) {
