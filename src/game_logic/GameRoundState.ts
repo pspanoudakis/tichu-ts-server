@@ -36,6 +36,7 @@ export class GameRoundState {
     private _currentPlayerIndex = -1;
     private _pendingDragonToBeGiven = false;
     private pendingBombToBePlayed = false;
+    private _overrideRequestedCardCheck = true;
     private _requestedCardName?: NormalCardName;
     private table: TableState = new TableState();
     private gameRoundWinnerKey: PlayerKey | '' = '';
@@ -159,6 +160,7 @@ export class GameRoundState {
         selectedCombination: CardCombination,
         selectedCards: Array<CardInfo>
     ) {
+        if (this._overrideRequestedCardCheck) return true;
         const requestedCardName = this._requestedCardName;
         if (
             !requestedCardName ||
@@ -281,6 +283,7 @@ export class GameRoundState {
                 nextPlayerIndex = (this._currentPlayerIndex + 2) % 4;
             }
             if (this._requestedCardName) {
+                this._overrideRequestedCardCheck = false;
                 if (this.table.currentCards.some(
                     card => card.name === this._requestedCardName
                 )) {
