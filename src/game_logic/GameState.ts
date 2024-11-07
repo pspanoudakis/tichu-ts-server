@@ -22,6 +22,7 @@ import {
     GameEndedEvent,
     GameRoundEndedEvent,
     GameRoundStartedEvent,
+    GameStartedEvent,
     PendingDragonDecisionEvent,
     PlayerJoinedEvent,
     PlayerLeftEvent,
@@ -186,11 +187,17 @@ export class GameState {
         });
         if (startGame) {
             this.status = GameStatus.IN_PROGRESS;
+            for (const key of PLAYER_KEYS) {
+                this.emitToPlayer<GameStartedEvent>(key, {
+                    eventType: ServerEventType.GAME_STARTED,
+                });                
+            }
             this.onGameRoundStarted();
         }
     }    
 
     onPlayerLeft(playerKey: PlayerKey, notifyOthers = false) {
+        let skipGameOverEvent = true;
         switch (this.status) {
             case GameStatus.OVER:
             case GameStatus.INIT:
@@ -206,6 +213,7 @@ export class GameState {
                     );
                 }
                 this.status = GameStatus.OVER;
+                skipGameOverEvent = false;
                 break;        
             default:
                 throw new Error(
@@ -217,7 +225,7 @@ export class GameState {
                 eventType: ServerEventType.PLAYER_LEFT,
                 playerKey: playerKey,
             });
-            this.onGamePossiblyOver();
+            if (!skipGameOverEvent) this.onGamePossiblyOver();
         }
     }
 
