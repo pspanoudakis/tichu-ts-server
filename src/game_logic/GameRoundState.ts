@@ -37,6 +37,7 @@ export class GameRoundState {
     private _pendingDragonToBeGiven = false;
     private pendingBombToBePlayed = false;
     private _overrideRequestedCardCheck = true;
+    private _cardRequestUsed = false;
     private _requestedCardName?: NormalCardName;
     private table: TableState = new TableState();
     private gameRoundWinnerKey: PlayerKey | '' = '';
@@ -419,10 +420,11 @@ export class GameRoundState {
     setRequestedCardOrElseThrow(player: PlayerState, e: RequestCardEvent) {
         if (player.playerKey !== PLAYER_KEYS[this._currentPlayerIndex])
             throw new BusinessError(`It is not this player's turn.`);
-        if (this._requestedCardName)
+        if (this._cardRequestUsed)
             throw new BusinessError('A card has already been requested.');
         if (!player.hasMahjong())
             throw new BusinessError('Cannot request a card without owning Majong');
+        this._cardRequestUsed = true;
         this._requestedCardName = e.data.requestedCardName;
     }
 

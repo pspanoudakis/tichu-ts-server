@@ -232,7 +232,6 @@ export class GameState {
     onCardsPlayed(playerKey: PlayerKey, e: PlayCardsEvent) {
         const player = this.getPlayer(playerKey);
         const cards = this.currentRound.playCardsOrElseThrow(player, e);
-        // TODO: crashes for dogs
         const combType = 
             this.currentRound.currentTableCombination?.type;
         if (!combType) throw new UnexpectedCombinationType (
