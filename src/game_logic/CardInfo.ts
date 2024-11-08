@@ -84,10 +84,10 @@ export class CardInfo {
     static compareCardsAlt(a: CardInfo, b: CardInfo, phoenixAltValue?: number) {
         let valueA = a.value;
         let valueB = b.value;
-        if (a.key === SpecialCards.Phoenix) {
+        if (a.name === SpecialCards.Phoenix) {
             valueA = phoenixAltValue ?? 0;
         }
-        else if (b.key === SpecialCards.Phoenix) {
+        else if (b.name === SpecialCards.Phoenix) {
             valueB = phoenixAltValue ?? 0;
         }
         return valueB - valueA;

@@ -366,16 +366,16 @@ export class GameRoundState {
      */
     passTurnOrElseThrow(player: PlayerState) {
         this.throwIfCannotPass(player);
+
         let nextPlayerIndex = (this._currentPlayerIndex + 1) % 4;
-        while (
-            (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) &&
-            (
-                (this.table.currentCards[0].key !== SpecialCards.Dragon) ||
-                (nextPlayerIndex !== this.table.currentCardsOwnerIndex)
-            )
-        ) {
-            if (nextPlayerIndex === this.table.currentCardsOwnerIndex) {
-                this.endTableRound();
+        while(this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) {
+            if (
+                (this.table.currentCards[0].name === SpecialCards.Dragon) &&
+                (nextPlayerIndex === this.table.currentCardsOwnerIndex)
+            ) {
+                this._currentPlayerIndex = this.table.currentCardsOwnerIndex;
+                this._pendingDragonToBeGiven = true;
+                return;
             }
             nextPlayerIndex = (nextPlayerIndex + 1) % 4;
         }
@@ -427,12 +427,10 @@ export class GameRoundState {
     }
 
     giveDragonOrElseThrow(player: PlayerState, e: GiveDragonEvent) {
-        if (player.playerKey !== PLAYER_KEYS[this._currentPlayerIndex])
-            throw new BusinessError(`It is not this player's turn.`);
-
         if (!this._pendingDragonToBeGiven)
             throw new BusinessError('No pending dragon decision state stored.');
-
+        if (player.playerKey !== PLAYER_KEYS[this.table.currentCardsOwnerIndex])
+            throw new BusinessError(`This player does not own the Dragon card.`);
         const chosenPlayer = this.players[e.data.chosenOponentKey];
         if (!chosenPlayer)
             throw new BusinessError('Invalid player key to give dragon to.');
@@ -461,27 +459,10 @@ export class GameRoundState {
         this._currentPlayerIndex = nextPlayerIndex;
         this.table = new TableState();
     }
-
-    /**
-     * If the current game round can end normally, sets the new Gameboard component state accordingly,
-     * or sets up a Dragon card decision state
-     * 
-     * The currently on-table cards are handed to their owner (unless the Dragon is the top card,
-     * where the owner has to choose an active opponent to hand the cards to).
-     */
+    
     endTableRound() {
-        // Preparing for new round
-        if (this.table.currentCards[0].name === SpecialCards.Dragon) {
-            this._currentPlayerIndex = this.table.currentCardsOwnerIndex;
-            this._pendingDragonToBeGiven = true;
-            return;
-        }
         this.players[PLAYER_KEYS[this.table.currentCardsOwnerIndex]]
-            .addCardsToHeap(
-                ...this.table.previousCards,
-                ...this.table.currentCards
-            );
-        this.table = new TableState();
+            .addCardsToHeap(...this.table.endTableRound());
     }
 
     /**
