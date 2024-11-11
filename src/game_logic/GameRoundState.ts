@@ -104,11 +104,6 @@ export class GameRoundState {
         }
     }
 
-    /**
-     * Returns `true` if the target combination can be played on top of the current
-     * table combination.
-     * @param selectedCombination The target combination to be examed.
-     */
     private isPlayable(selectedCombination: CardCombination) {
         if (this.table.currentCards[0]?.name === SpecialCards.Dogs) return true;
         if (this.table.currentCombination !== null) {
@@ -129,11 +124,6 @@ export class GameRoundState {
         return true;
     }
 
-    /**
-    * Performs all the checks that are demanded when there is a pending Bomb to be played.
-    * Throws if any checks are not passed.
-    * @param combination The combination to be played.
-    */
     private throwIfPendingBombCheckFailed(combination: CardCombination) {
         if (!this.pendingBombToBePlayed) return;
         if (combination instanceof Bomb) {
@@ -149,13 +139,6 @@ export class GameRoundState {
         }
     }
 
-    /**
-     * Returns `true` if the currently selected combination complies with the Mahjong request,
-     * `false` otherwise.
-     * @param allPlayerCards The target player's cards, **both** selected and non-selected.
-     * @param selectedCombination The combination that is created from the **selected** cards.
-     * @param selectedCards The selected cards.
-     */
     private isMahjongCompliant(
         allPlayerCards: Array<CardInfo>,
         selectedCombination: CardCombination,
@@ -210,14 +193,6 @@ export class GameRoundState {
         }
     }
 
-    /**
-    * Performs all the checks that are demanded when there is an unsatisfied Mahjong request.
-    * Throws if any checks are not passed.
-    * 
-    * @param allPlayerCards All the current player's cards.
-    * @param selectedCards The current player's selected cards.
-    * @param combination The combination which is created by the selected cards.
-    */
     private throwIfRequestedCardCheckFailed(
         allPlayerCards: CardInfo[],
         selectedCards: CardInfo[],
@@ -305,11 +280,6 @@ export class GameRoundState {
         return this.table.currentCards;
     }
 
-    /**
-     * Returns `true` if the player with the specified cards can pass, based on the
-     * requested card and the current table combination.
-     * @param playerCards The player's cards.
-     */
     private throwIfCannotPass(player: PlayerState) {
         if (player.playerKey !== PLAYER_KEYS[this._currentPlayerIndex])
             throw new BusinessError(`It is not this player's turn.`);
@@ -358,36 +328,24 @@ export class GameRoundState {
             throw new BusinessError('The majong request must be satisfied by using a bomb.');
     }
 
-    /**
-     * Called when the current player has chosen to pass.
-     * 
-     * If this is acceptable, the Gameboard state will be changed (it will be the next player's turn,
-     * and if the next player is the owner of the currently on-table cards, the round will end).
-     * Otherwise, an alert message will be displayed, and the current player will be forced to play.
-     */
     passTurnOrElseThrow(player: PlayerState) {
         this.throwIfCannotPass(player);
 
         let nextPlayerIndex = (this._currentPlayerIndex + 1) % 4;
-        while(this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() === 0) {
-            if (
-                (this.table.currentCards[0].name === SpecialCards.Dragon) &&
-                (nextPlayerIndex === this.table.currentCardsOwnerIndex)
-            ) {
-                this._currentPlayerIndex = this.table.currentCardsOwnerIndex;
-                this._pendingDragonToBeGiven = true;
-                return;
+        while (true) {
+            if (nextPlayerIndex === this.table.currentCardsOwnerIndex) {
+                if (this.table.currentCards[0].name === SpecialCards.Dragon) {
+                    this._pendingDragonToBeGiven = true;
+                    break;
+                } else {
+                    this.endTableRound();
+                }
             }
+            if (this.players[PLAYER_KEYS[nextPlayerIndex]].getNumCards() > 0)
+                break;
             nextPlayerIndex = (nextPlayerIndex + 1) % 4;
         }
         this._currentPlayerIndex = nextPlayerIndex;
-        if (nextPlayerIndex === this.table.currentCardsOwnerIndex) {
-            if (this.table.currentCards[0].name === SpecialCards.Dragon) {
-                this._pendingDragonToBeGiven = true;
-                return;
-            }
-            this.endTableRound();
-        }        
     }
 
     onPlayerTradesReceived(playerKey: PlayerKey) {
