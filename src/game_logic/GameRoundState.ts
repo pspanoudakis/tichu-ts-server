@@ -380,10 +380,14 @@ export class GameRoundState {
             }
             nextPlayerIndex = (nextPlayerIndex + 1) % 4;
         }
-        if (nextPlayerIndex === this.table.currentCardsOwnerIndex) {
-            this.endTableRound();
-        }
         this._currentPlayerIndex = nextPlayerIndex;
+        if (nextPlayerIndex === this.table.currentCardsOwnerIndex) {
+            if (this.table.currentCards[0].name === SpecialCards.Dragon) {
+                this._pendingDragonToBeGiven = true;
+                return;
+            }
+            this.endTableRound();
+        }        
     }
 
     onPlayerTradesReceived(playerKey: PlayerKey) {
