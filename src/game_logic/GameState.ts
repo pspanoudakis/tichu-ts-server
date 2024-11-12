@@ -115,8 +115,8 @@ export class GameState {
                 this.winningScore === 0 &&
                 this.currentRound.mustEndGameRound()
             ) ||
-            this.team02TotalPoints >= this.winningScore ||
-            this.team13TotalPoints >= this.winningScore
+            (this.team02TotalPoints >= this.winningScore) ||
+            (this.team13TotalPoints >= this.winningScore)
         );
     }
 
