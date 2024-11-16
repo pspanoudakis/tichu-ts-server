@@ -61,7 +61,9 @@ export type PlayerJoinedEvent = z.infer<typeof zPlayerJoinedEvent>;
 
 export const zPlayerLeftEvent = createGameEventSchema(
     z.literal(ServerEventType.PLAYER_LEFT),
-    z.undefined(),
+    z.object({
+        gameOver: z.boolean(),
+    }),
     zPlayerKey,
 );
 export type PlayerLeftEvent = z.infer<typeof zPlayerLeftEvent>;

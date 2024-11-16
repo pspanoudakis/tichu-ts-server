@@ -178,6 +178,7 @@ export class GameState {
                     scores: this.scoreHistory,
                 }
             });
+            this.status = GameStatus.INIT;
         }
     }
 
@@ -230,6 +231,9 @@ export class GameState {
             this.emitToAll<PlayerLeftEvent>({
                 eventType: ServerEventType.PLAYER_LEFT,
                 playerKey: playerKey,
+                data: {
+                    gameOver: this.isGameOver,
+                }
             });
             if (!skipGameOverEvent) this.onGamePossiblyOver();
         }
