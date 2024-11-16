@@ -401,32 +401,27 @@ export class Kenta extends CardCombination {
      */
     static getStrongestRequested(cards: Array<CardInfo>, requested: NormalCardName, length: number) {
         if (cards.length >= length) {
-            let cardOccurences: Map<string, number> = new Map();
-            let phoenixUsed = true;
+            let cardOccurences: Map<string, boolean> = new Map();
+            let phoenixAvailable = false;
             for (const card of cards) {
                 if (!specialCardNames.includes(card.name)) {
-                    let occurences = cardOccurences.get(card.name);
-                    if (occurences === undefined) {
-                        occurences = 0;
-                    }
-                    cardOccurences.set(card.name, occurences + 1);
+                    cardOccurences.set(card.name, true);
                 }
-                else if (phoenixUsed) {
-                    phoenixUsed = !(card.name === SpecialCards.Phoenix);
+                else {
+                    phoenixAvailable = (card.name === SpecialCards.Phoenix);
                 }
             }
-            if (cardOccurences.get(requested) !== undefined || !phoenixUsed) {
+            if (cardOccurences.get(requested)) {
                 let requestedIndex = normalCardNames.indexOf(requested);
                 let highIndex = Math.min(normalCardNames.length - 1, requestedIndex + length - 1);
                 let lowIndex = highIndex - length + 1;
                 while (lowIndex >= 0 && isBetween(requestedIndex, lowIndex, highIndex)) {
-                    let phoenixUsedTemp = phoenixUsed;
+                    let phoenixUsed = !phoenixAvailable;
                     let i = highIndex;
                     for (; i >= lowIndex; i--) {
-                        const occurences = cardOccurences.get(normalCardNames[i]);
-                        if (occurences === undefined) {
-                            if (phoenixUsedTemp) { break; }
-                            phoenixUsedTemp = true;
+                        if (!cardOccurences.get(normalCardNames[i])) {
+                            if (phoenixUsed) { break; }
+                            phoenixUsed = true;
                         }
                     }
                     if (i < lowIndex) {
